@@ -1,36 +1,35 @@
-from typing import Union, List
+from typing import Optional, List
 import uvicorn
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from uuid import uuid4
 from pymongo import MongoClient
+import math
+from fastapi.middleware.cors import CORSMiddleware
+from bson import ObjectId
+from fastapi.responses import JSONResponse
 
 app = FastAPI()
 
+# Database connection
 client = MongoClient('mongodb://root:example@localhost:27017/?authMechanism=DEFAULT')
 db = client['placedb']
-users = db['users']
 locations = db['locations']
 reviews = db['reviews']
 
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 # Models
-class User(BaseModel):
-    id: str
-    name: str
-
-
-class UserCreateRequest(BaseModel):
-    name: str
-
-
-class UserRequest(BaseModel):
-    value: str
-
-
 class Location(BaseModel):
-    id: str
+    _id: str
     name: str
     lat: float
     lng: float
@@ -44,156 +43,100 @@ class LocationCreateRequest(BaseModel):
     category: str
 
 
-class LocationRequest(BaseModel):
-    id: str
+class LocationViewRequest(BaseModel):
+    lat: Optional[str] = None
+    lng: Optional[str] = None
+    radius_km: Optional[float] = None
+    name: Optional[str] = None
+    category: Optional[str] = None
 
 
 class Review(BaseModel):
-    review_id: str
-    user_id: str
+    _id: str
     location_id: str
-    rating: float
+    rating: float = Field(..., ge=0, le=5)
     content: str
 
 
 class ReviewCreateRequest(BaseModel):
-    user_id: str
     location_id: str
-    rating: float
+    rating: float = Field(..., ge=0, le=5)
     content: str
 
 
-class ReviewRequest(BaseModel):
-    id: str
+class ReviewViewRequest(BaseModel):
+    location_id: str
 
 
-# User Endpoints
-@app.post('/users')
-def create_user(body: UserCreateRequest):
-    user_id = str(uuid4())
-    user = {'_id': user_id, 'name': body.name}
-    users.insert_one(user)
-    return JSONResponse(content={'id': user_id, 'message': 'User created successfully'})
+# ID Serializer
+def serialize_mongo_document(document):
+    if "_id" in document:
+        document["_id"] = str(document["_id"])
+    return document
 
 
-@app.post('/users/{parameter}')
-def get_user(parameter: str, body: UserRequest):
-    """
-    Search for a user by a dynamic parameter.
-    Accepts a JSON body with a "value" key specifying the search value.
-    """
-    value = body.value
-    if not value:
-        raise HTTPException(status_code=400, detail="Request body must include a 'value' key.")
-
-    # Adjust the key for '_id' if searching by 'id'
-    key = "_id" if parameter == "id" else parameter
-
-    # Build the query
-    query = {key: value}
-    if key == "_id":  # Special handling for MongoDB's ObjectId
-        query["_id"] = value
-
-    # Perform the query
-    user = users.find_one(query)
-    if not user:
-        raise HTTPException(status_code=404, detail=f"User with {parameter} '{value}' not found")
-
-    # Serialize '_id' to string for JSON response
-    if "_id" in user:
-        user["_id"] = str(user["_id"])
-    return user
-
-
-@app.get('/users')
-def get_all_users():
-    return [{"_id": str(user["_id"]), **user} for user in users.find({})]
-
-
-@app.delete('/users/delete')
-def delete_user(body: UserRequest):
-    result = users.delete_one({'_id': body.value})
-    if result.deleted_count == 1:
-        return JSONResponse(content={'message': 'Successfully deleted'})
-    raise HTTPException(status_code=404, detail="User not found")
-
-
-# Location Endpoints
-@app.post('/locations')
-def create_location(body: LocationCreateRequest):
-    existing_location = locations.find_one({'lat': body.lat, 'lng': body.lng})
-    if existing_location:
-        return JSONResponse(content={'message': 'Location already exists', 'location': existing_location})
+# Endpoints
+@app.post("/locations/")
+def create_location(location: LocationCreateRequest):
     location_id = str(uuid4())
-    location = {
-        '_id': location_id,
-        'name': body.name,
-        'lat': body.lat,
-        'lng': body.lng,
-        'category': body.category
-    }
-    locations.insert_one(location)
-    return JSONResponse(content={'id': location_id, 'message': 'Location created successfully'})
+    location_data = {**location.dict(), "_id": location_id}
+    locations.insert_one(location_data)
+    return {"message": "Location created", "location": location_data}
 
 
-@app.post('/locations/get')
-def get_location(body: LocationRequest):
-    location = locations.find_one({'_id': body.id})
-    if not location:
-        raise HTTPException(status_code=404, detail="Location not found")
-    location['_id'] = str(location['_id'])
-    return location
+@app.post("/locations/get/", response_model=List[Location])
+def get_locations(request: LocationViewRequest):
+    """
+    Retrieve locations based on optional filters: lat, lng, radius_km, name, or category.
+    """
+    query = {}
+
+    if request.lat and request.lng and request.radius_km:
+        lat, lng, radius_km = float(request.lat), float(request.lng), request.radius_km
+
+        lat_diff = radius_km / 111
+        lng_diff = radius_km / (111 * abs(math.cos(math.radians(lat))))
+
+        min_lat = lat - lat_diff
+        max_lat = lat + lat_diff
+        min_lng = lng - lng_diff
+        max_lng = lng + lng_diff
+
+        query.update({
+            "lat": {"$gte": min_lat, "$lte": max_lat},
+            "lng": {"$gte": min_lng, "$lte": max_lng},
+        })
+
+    if request.name:
+        query["name"] = {"$regex": request.name, "$options": "i"}
+    if request.category:
+        query["category"] = {"$regex": request.category, "$options": "i"}
+
+    location_results = list(locations.find(query, {"_id": 1, "name": 1, "lat": 1, "lng": 1, "category": 1}))
+
+    if not location_results:
+        raise HTTPException(status_code=404, detail="No locations found matching the criteria")
+
+    return JSONResponse(content=location_results)
 
 
-@app.get('/locations')
-def get_all_locations():
-    return [{"_id": str(location["_id"]), **location} for location in locations.find({})]
-
-
-@app.post('/locations/delete')
-def delete_location(body: LocationRequest):
-    result = locations.delete_one({'_id': body.id})
-    if result.deleted_count == 1:
-        return JSONResponse(content={'message': 'Successfully deleted'})
-    raise HTTPException(status_code=404, detail="Location not found")
-
-
-# Review Endpoints
-@app.post('/reviews')
-def create_review(body: ReviewCreateRequest):
+@app.post("/reviews/")
+def create_review(review: ReviewCreateRequest):
     review_id = str(uuid4())
-    review = {
-        '_id': review_id,
-        'location_id': body.location_id,
-        'user_id': body.user_id,
-        'rating': body.rating,
-        'content': body.content
-    }
-    reviews.insert_one(review)
-    return JSONResponse(content={'id': review_id, 'message': 'Review added successfully'})
+    review_data = {**review.dict(), "_id": review_id}
+    inserted_review = reviews.insert_one(review_data)
+    review_data["_id"] = str(inserted_review.inserted_id)
+    return {"message": "Review added", "review": review_data}
 
 
-@app.post('/reviews/get')
-def get_review(body: ReviewRequest):
-    review = reviews.find_one({'_id': body.id})
-    if not review:
-        raise HTTPException(status_code=404, detail="Review not found")
-    review['_id'] = str(review['_id'])
-    return review
+@app.get("/reviews/{location_id}", response_model=List[Review])
+def get_reviews(location_id: str):
+    location_reviews = list(reviews.find({"location_id": location_id}))
+    if not location_reviews:
+        raise HTTPException(status_code=404, detail="No reviews found for this location")
+    serialized_reviews = [serialize_mongo_document(review) for review in location_reviews]
+    return serialized_reviews
 
 
-@app.get('/reviews')
-def get_all_reviews():
-    return [{"_id": str(review["_id"]), **review} for review in reviews.find({})]
-
-
-@app.post('/reviews/delete')
-def delete_review(body: ReviewRequest):
-    result = reviews.delete_one({'_id': body.id})
-    if result.deleted_count == 1:
-        return JSONResponse(content={'message': 'Successfully deleted'})
-    raise HTTPException(status_code=404, detail="Review not found")
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     uvicorn.run(app)
