@@ -1,0 +1,302 @@
+{
+ "version": 0.6,
+ "generator": "Overpass API 0.7.62.11 87bfad18",
+ "osm3s": {
+  "timestamp_osm_base": "2026-07-04T06:47:44Z",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+ },
+ "elements": [
+  {
+   "type": "node",
+   "id": 392957646,
+   "lat": 46.0672337,
+   "lon": -123.7897567,
+   "tags": {
+    "name": "Youngs River Falls",
+    "waterway": "waterfall",
+    "wikidata": "Q8058631",
+    "wikipedia": "en:Youngs River Falls"
+   }
+  },
+  {
+   "type": "node",
+   "id": 496619635,
+   "lat": 45.3800025,
+   "lon": -121.776265,
+   "tags": {
+    "ele": "1085",
+    "gnis:feature_id": "1148191",
+    "height": "36.5",
+    "layer": "-1",
+    "name": "Ramona Falls",
+    "tourism": "attraction",
+    "waterway": "waterfall",
+    "wikidata": "Q37605"
+   }
+  },
+  {
+   "type": "node",
+   "id": 612014792,
+   "lat": 45.5407064,
+   "lon": -122.2425857,
+   "tags": {
+    "intermittent": "yes",
+    "seasonal": "yes",
+    "waterway": "waterfall"
+   }
+  },
+  {
+   "type": "node",
+   "id": 697812094,
+   "lat": 45.5766045,
+   "lon": -122.1161041,
+   "tags": {
+    "height": "21",
+    "name": "Lower Multnomah Falls",
+    "waterway": "waterfall",
+    "width": "3"
+   }
+  },
+  {
+   "type": "node",
+   "id": 822220242,
+   "lat": 45.7992835,
+   "lon": -121.4854409,
+   "tags": {
+    "name": "Husum Falls",
+    "waterway": "waterfall"
+   }
+  },
+  {
+   "type": "node",
+   "id": 822221055,
+   "lat": 45.8549111,
+   "lon": -121.5099948,
+   "tags": {
+    "name": "BZ Falls",
+    "waterway": "waterfall"
+   }
+  },
+  {
+   "type": "node",
+   "id": 825686883,
+   "lat": 45.6231671,
+   "lon": -122.9373728,
+   "tags": {
+    "gnis:feature_id": "1122359",
+    "name": "Jackson Falls",
+    "nhd:com_id": "142404473",
+    "nhd:fdate": "Fri Nov 04 00:00:00 PST 2005",
+    "waterway": "waterfall"
+   }
+  },
+  {
+   "type": "node",
+   "id": 825767917,
+   "lat": 45.4651885,
+   "lon": -123.284673,
+   "tags": {
+    "gnis:feature_id": "1123020",
+    "name": "Lee Falls",
+    "nhd:com_id": "142404502",
+    "nhd:fdate": "Fri Nov 04 00:00:00 PST 2005",
+    "waterway": "waterfall"
+   }
+  },
+  {
+   "type": "node",
+   "id": 825793163,
+   "lat": 45.4654675,
+   "lon": -123.3203743,
+   "tags": {
+    "gnis:feature_id": "1121508",
+    "name": "Haines Falls",
+    "nhd:com_id": "142404532",
+    "nhd:fdate": "Fri Nov 04 00:00:00 PST 2005",
+    "waterway": "waterfall"
+   }
+  },
+  {
+   "type": "node",
+   "id": 825873180,
+   "lat": 45.451418,
+   "lon": -123.2644904,
+   "tags": {
+    "gnis:feature_id": "1123223",
+    "name": "Little Lee Falls",
+    "nhd:com_id": "142404527",
+    "nhd:fdate": "Fri Nov 04 00:00:00 PST 2005",
+    "waterway": "waterfall"
+   }
+  },
+  {
+   "type": "node",
+   "id": 876669236,
+   "lat": 45.4119464,
+   "lon": -121.6846484,
+   "tags": {
+    "name": "Kalakwahtie Falls",
+    "waterway": "waterfall"
+   }
+  },
+  {
+   "type": "node",
+   "id": 876670557,
+   "lat": 45.4113572,
+   "lon": -121.6562036,
+   "tags": {
+    "alt_name": "Wallalute Falls",
+    "name": "Stranahan Falls",
+    "note": "USGS maps show this as Wallalute Falls, but that is probably incorrect.",
+    "waterway": "waterfall"
+   }
+  },
+  {
+   "type": "node",
+   "id": 910313597,
+   "lat": 45.5746626,
+   "lon": -122.127595,
+   "tags": {
+    "height": "73.7",
+    "name": "Wahkeena Falls",
+    "waterway": "waterfall",
+    "wikidata": "Q38034",
+    "wikipedia": "en:Wahkeena Falls"
+   }
+  },
+  {
+   "type": "node",
+   "id": 944700656,
+   "lat": 45.6571297,
+   "lon": -121.866641,
+   "tags": {
+    "height": "22",
+    "name": "Dry Creek Falls",
+    "waterway": "waterfall"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1017565710,
+   "lat": 45.5759525,
+   "lon": -122.1151867,
+   "tags": {
+    "height": "165",
+    "name": "Multnomah Falls",
+    "waterway": "waterfall",
+    "width": "3",
+    "wikidata": "Q37319",
+    "wikipedia": "en:Multnomah Falls"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1223263121,
+   "lat": 45.6207255,
+   "lon": -121.8933159,
+   "tags": {
+    "waterway": "waterfall"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1224439591,
+   "lat": 45.5843111,
+   "lon": -121.8540117,
+   "tags": {
+    "height": "12.5",
+    "name": "Grand Union Falls",
+    "waterway": "waterfall"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1224440344,
+   "lat": 45.5820103,
+   "lon": -121.8519623,
+   "tags": {
+    "height": "45.1",
+    "name": "Twister Falls",
+    "waterway": "waterfall"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1311156923,
+   "lat": 45.8133218,
+   "lon": -122.3031055,
+   "tags": {
+    "height": "6.7",
+    "name": "Horseshoe Falls",
+    "waterway": "waterfall"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1311157011,
+   "lat": 45.8395406,
+   "lon": -122.4466262,
+   "tags": {
+    "height": "4.6",
+    "name": "Lucia Falls",
+    "waterway": "waterfall"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1311157139,
+   "lat": 45.8322838,
+   "lon": -122.4009602,
+   "tags": {
+    "waterway": "waterfall"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1337803101,
+   "lat": 45.2570698,
+   "lon": -121.039336,
+   "tags": {
+    "height": "4.572",
+    "intermittent": "no",
+    "name": "Sherar's Falls",
+    "note": "https://www.waterfallsnorthwest.com/waterfall/Sherars-Falls-3749",
+    "waterway": "waterfall"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1433963944,
+   "lat": 45.5971438,
+   "lon": -122.3968826,
+   "tags": {
+    "waterway": "waterfall"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1557371053,
+   "lat": 44.8897433,
+   "lon": -122.646144,
+   "tags": {
+    "height": "8",
+    "name": "Drake Falls",
+    "tourism": "attraction",
+    "waterway": "waterfall",
+    "width": "3"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1557371068,
+   "lat": 44.8787874,
+   "lon": -122.6587828,
+   "tags": {
+    "height": "54",
+    "name": "South Falls",
+    "tourism": "attraction",
+    "waterway": "waterfall"
+   }
+  }
+ ]
+}

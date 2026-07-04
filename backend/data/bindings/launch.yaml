@@ -1,0 +1,401 @@
+# The ~10 hand-forged launch bindings (docs/03 §3, docs/01 §3 & §6).
+# Loaded idempotently by `python -m place.ingest.cli bindings`
+# (place.ingest.bindings). Each binding creates-if-missing:
+#   place -> affordance (activity, hazard flags) -> condition_windows (DSL).
+#
+# DSL notes (docs/01 §3):
+# - `exit_value` is hysteresis. On is_gate windows the band sits on the SAFE
+#   side: `value` is the conservative entry threshold, `exit_value` the earned
+#   hard bound — anti-flap never holds a hazard window open past its limit.
+#   The loader validates this and refuses to load a gate banded the wrong way.
+# - Seasonal priors use a `months` leaf: true while the current month is in
+#   the list. (Grammar extension coordinated with place/dsl.py — the docs' §3
+#   grammar only sketches feed leaves.)
+#
+# All gauge/station ids are real:
+#   14210000  USGS NWIS, Clackamas River at Estacada, OR (discharge 00060)
+#   14137000  USGS NWIS, Sandy River below Bull Run River, near Bull Run, OR
+#   9437540   NOAA CO-OPS, Garibaldi, OR (tide predictions)
+#   651:OR:SNTL  USDA SNOTEL, Mt Hood Test Site
+#   mt_hood   NWAC avalanche forecast zone slug (slug('Mt Hood') per the
+#             adapter's zone filter — underscore, docs/01 §3d)
+
+version: 1
+
+# Feed rows the predicates below reference (upserted so the evaluator can
+# poll them; ids follow docs/01 §2 'provider:station:parameter').
+feeds:
+  - id: "usgs_nwis:14210000:00060"
+    provider: usgs_nwis
+    station_ref: "14210000"
+    parameter: discharge_cfs
+    unit: cfs
+  - id: "usgs_nwis:14137000:00060"
+    provider: usgs_nwis
+    station_ref: "14137000"
+    parameter: discharge_cfs
+    unit: cfs
+  - id: "open_meteo:45.44,-122.62:air_temp_f"
+    provider: open_meteo
+    station_ref: "45.44,-122.62"
+    parameter: air_temp_f
+    unit: degF
+  - id: "open_meteo:45.48,-122.25:air_temp_f"
+    provider: open_meteo
+    station_ref: "45.48,-122.25"
+    parameter: air_temp_f
+    unit: degF
+  - id: "open_meteo:45.49,-122.29:air_temp_f"
+    provider: open_meteo
+    station_ref: "45.49,-122.29"
+    parameter: air_temp_f
+    unit: degF
+  - id: "nws:45.40,-121.57:precip_in"
+    provider: nws
+    station_ref: "45.40,-121.57"
+    parameter: precip_in
+    unit: in
+  - id: "nws:45.61,-122.12:precip_in"
+    provider: nws
+    station_ref: "45.61,-122.12"
+    parameter: precip_in
+    unit: in
+  - id: "nws:45.54,-122.22:precip_in"
+    provider: nws
+    station_ref: "45.54,-122.22"
+    parameter: precip_in
+    unit: in
+  - id: "nws:45.63,-121.95:precip_in"
+    provider: nws
+    station_ref: "45.63,-121.95"
+    parameter: precip_in
+    unit: in
+  # Nearest CO-OPS predictions station to Cannon Beach with published
+  # predictions is Garibaldi (9437540), ~35 km south on the open coast.
+  # CAVEAT: timing/height offsets vs Haystack Rock are small on this
+  # stretch of open coast but real (~minutes / ~0.1 ft); the -1.0 ft
+  # threshold absorbs the offset on the safe side. Revisit if NOAA
+  # publishes a closer subordinate station.
+  - id: "noaa_coops:haystack_rock:tide_pred_ft_mllw"
+    provider: noaa_coops
+    station_ref: "9437540"
+    parameter: tide_pred_ft_mllw
+    unit: ft_mllw
+  - id: "astro:45.88,-123.97:is_daylight"
+    provider: astro
+    station_ref: "45.88,-123.97"
+    parameter: is_daylight
+    unit: bool
+  - id: "snotel:mt_hood:swe_in"
+    provider: snotel
+    station_ref: "651:OR:SNTL"
+    parameter: swe_in
+    unit: in
+  # Larch Mountain (Sherrard Point) — station_ref is the summit point; the
+  # astro adapter emits under the 2-decimal point ref, hence the feed id.
+  - id: "astro:45.53,-122.09:sun_elevation_deg"
+    provider: astro
+    station_ref: "45.529,-122.088"
+    parameter: sun_elevation_deg
+    unit: deg
+  # station_ref doubles as the adapter's zone filter and the feed id's middle
+  # segment: it must equal slug('Mt Hood') = 'mt_hood' or the adapter matches
+  # no zone and the readings would emit under a different feed id.
+  - id: "nwac:mt_hood:danger_level"
+    provider: nwac
+    station_ref: "mt_hood"
+    parameter: danger_level
+    unit: level
+
+bindings:
+  # ------------------------------------------------------------------
+  # Wild swim — hazard class. Suppressed from the feed until a founder
+  # verification exists; that is CORRECT (docs/01 §4 rule 3).
+  # ------------------------------------------------------------------
+  - key: high-rocks-wild-swim
+    place: {name: High Rocks, kind: swim_hole, lat: 45.4404, lng: -122.6095}
+    activity: wild_swim
+    affordance:
+      difficulty: 3
+      typical_duration: "2 hours"
+      dog_ok: true
+      kid_ok: false
+      base_quality: 0.8
+    access_note:
+      kind: parking
+      lat: 45.441
+      lng: -122.608
+      notes: "Cross Park lot; fills by 11am on hot July weekends"
+    windows:
+      # Entry <1050 cfs (conservative), exit 1200 cfs (earned hard bound) —
+      # safe-side hysteresis; forged per docs/03 §3 step 3 on gauge 14210000.
+      - wtype: hydrological
+        is_gate: true
+        multiplier: 2.0
+        predicate:
+          all:
+            - {feed: "usgs_nwis:14210000:00060", op: "<", value: 1050, exit_value: 1200}
+            - {feed: "open_meteo:45.44,-122.62:air_temp_f", op: ">", value: 75}
+      - wtype: seasonal
+        is_gate: false
+        multiplier: 1.3
+        predicate: {months: [7, 8, 9]}
+
+  - key: dodge-park-wild-swim
+    place: {name: Dodge Park, kind: swim_hole, lat: 45.4753, lng: -122.2465}
+    activity: wild_swim
+    affordance:
+      difficulty: 2
+      typical_duration: "2 hours"
+      dog_ok: true
+      kid_ok: true
+      base_quality: 0.7
+    windows:
+      # Sandy River below Bull Run (14137000); same shape as High Rocks.
+      - wtype: hydrological
+        is_gate: true
+        multiplier: 2.0
+        predicate:
+          all:
+            - {feed: "usgs_nwis:14137000:00060", op: "<", value: 1000, exit_value: 1200}
+            - {feed: "open_meteo:45.48,-122.25:air_temp_f", op: ">", value: 75}
+      - wtype: seasonal
+        is_gate: false
+        multiplier: 1.3
+        predicate: {months: [7, 8, 9]}
+
+  - key: oxbow-park-wild-swim
+    place: {name: Oxbow Regional Park, kind: swim_hole, lat: 45.4933, lng: -122.2952}
+    activity: wild_swim
+    affordance:
+      difficulty: 2
+      typical_duration: "3 hours"
+      dog_ok: false  # Metro parks: no dogs at Oxbow
+      kid_ok: true
+      base_quality: 0.75
+    windows:
+      - wtype: hydrological
+        is_gate: true
+        multiplier: 2.0
+        predicate:
+          all:
+            - {feed: "usgs_nwis:14137000:00060", op: "<", value: 1000, exit_value: 1200}
+            - {feed: "open_meteo:45.49,-122.29:air_temp_f", op: ">", value: 75}
+      - wtype: seasonal
+        is_gate: false
+        multiplier: 1.3
+        predicate: {months: [7, 8, 9]}
+
+  # ------------------------------------------------------------------
+  # Waterfall view — weather-triggered boost after sustained rain
+  # (72-h precip sum >= 1.0 in), plus a wet-season prior. Not gates.
+  # ------------------------------------------------------------------
+  - key: tamanawas-falls-view
+    place: {name: Tamanawas Falls, kind: waterfall, lat: 45.3990, lng: -121.5723}
+    activity: waterfall_view
+    affordance:
+      difficulty: 2
+      typical_duration: "3 hours"
+      dog_ok: true
+      kid_ok: true
+      base_quality: 0.7
+    windows:
+      - wtype: weather_triggered
+        is_gate: false
+        multiplier: 1.8
+        predicate:
+          feed: "nws:45.40,-121.57:precip_in"
+          agg: sum
+          window_h: 72
+          op: ">="
+          value: 1.0
+      - wtype: seasonal
+        is_gate: false
+        multiplier: 1.2
+        predicate: {months: [10, 11, 12, 1, 2, 3, 4, 5, 6]}
+
+  - key: elowah-falls-view
+    place: {name: Elowah Falls, kind: waterfall, lat: 45.6110, lng: -122.1243}
+    activity: waterfall_view
+    affordance:
+      difficulty: 2
+      typical_duration: "2 hours"
+      dog_ok: true
+      kid_ok: true
+      base_quality: 0.7
+    windows:
+      - wtype: weather_triggered
+        is_gate: false
+        multiplier: 1.8
+        predicate:
+          feed: "nws:45.61,-122.12:precip_in"
+          agg: sum
+          window_h: 72
+          op: ">="
+          value: 1.0
+      - wtype: seasonal
+        is_gate: false
+        multiplier: 1.2
+        predicate: {months: [10, 11, 12, 1, 2, 3, 4, 5, 6]}
+
+  - key: latourell-falls-view
+    place: {name: Latourell Falls, kind: waterfall, lat: 45.5372, lng: -122.2178}
+    activity: waterfall_view
+    affordance:
+      difficulty: 1
+      typical_duration: "90 minutes"
+      dog_ok: true
+      kid_ok: true
+      base_quality: 0.75
+    windows:
+      - wtype: weather_triggered
+        is_gate: false
+        multiplier: 1.8
+        predicate:
+          feed: "nws:45.54,-122.22:precip_in"
+          agg: sum
+          window_h: 72
+          op: ">="
+          value: 1.0
+      - wtype: seasonal
+        is_gate: false
+        multiplier: 1.2
+        predicate: {months: [10, 11, 12, 1, 2, 3, 4, 5, 6]}
+
+  - key: wahclella-falls-view
+    place: {name: Wahclella Falls, kind: waterfall, lat: 45.6284, lng: -121.9540}
+    activity: waterfall_view
+    affordance:
+      difficulty: 1
+      typical_duration: "2 hours"
+      dog_ok: true
+      kid_ok: true
+      base_quality: 0.8
+    windows:
+      - wtype: weather_triggered
+        is_gate: false
+        multiplier: 1.8
+        predicate:
+          feed: "nws:45.63,-121.95:precip_in"
+          agg: sum
+          window_h: 72
+          op: ">="
+          value: 1.0
+      - wtype: seasonal
+        is_gate: false
+        multiplier: 1.2
+        predicate: {months: [10, 11, 12, 1, 2, 3, 4, 5, 6]}
+
+  # ------------------------------------------------------------------
+  # Tidal — forecastable months out (CO-OPS predictions).
+  # ------------------------------------------------------------------
+  - key: haystack-rock-tidepool
+    place: {name: Haystack Rock, kind: tidepool_area, lat: 45.8841, lng: -123.9685}
+    activity: tidepool
+    affordance:
+      difficulty: 1
+      typical_duration: "90 minutes"
+      dog_ok: true
+      kid_ok: true
+      base_quality: 0.9
+    windows:
+      # Brief pins the threshold: predicted tide < -1.0 ft MLLW (a true
+      # minus tide, stricter than docs/01 §6's 0.0 example) AND daylight.
+      - wtype: tidal
+        is_gate: false
+        multiplier: 2.2
+        predicate:
+          all:
+            - {feed: "noaa_coops:haystack_rock:tide_pred_ft_mllw", op: "<", value: -1.0}
+            - {feed: "astro:45.88,-123.97:is_daylight", op: "=", value: 1}
+      # Seasonal prior (docs/04 §4 rule 2: every affordance carries one so a
+      # CO-OPS outage degrades to the prior, not to silence). Oregon-coast
+      # tidepooling is year-round; the modest multiplier just keeps the
+      # degradation contract intact.
+      - wtype: seasonal
+        is_gate: false
+        multiplier: 1.1
+        predicate: {months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}
+
+  # ------------------------------------------------------------------
+  # Snow — SNOTEL SWE + NWAC danger as an is_gate (snow travel adjacent;
+  # gate on avalanche danger even though snowshoe itself is not hazard
+  # class — Trillium's approach crosses avalanche terrain runouts).
+  # ------------------------------------------------------------------
+  - key: trillium-lake-snowshoe
+    place: {name: Trillium Lake, kind: lake, lat: 45.2673, lng: -121.7395}
+    activity: snowshoe
+    affordance:
+      difficulty: 2
+      typical_duration: "3 hours"
+      dog_ok: true
+      kid_ok: true
+      base_quality: 0.8
+    windows:
+      # NWAC danger scale is 1..5; <=2 (moderate) is the conservative entry,
+      # and there is no hysteresis band on a danger rating — it gates hard.
+      - wtype: snow
+        is_gate: true
+        multiplier: 1.8
+        predicate:
+          all:
+            - {feed: "snotel:mt_hood:swe_in", op: ">=", value: 10}
+            - {feed: "nwac:mt_hood:danger_level", op: "<=", value: 2}
+      - wtype: seasonal
+        is_gate: false
+        multiplier: 1.2
+        predicate: {months: [12, 1, 2, 3]}
+
+  # ------------------------------------------------------------------
+  # Astronomical — dark-sky stargazing. Sherrard Point on Larch Mountain
+  # is the classic Portland-area stargazing summit (drive-up, 4,061 ft,
+  # 360° horizon). Condition: astronomical darkness at the summit
+  # (sun elevation <= -12°, nautical night). Seasonal prior tracks the
+  # Larch Mountain Road snow gate (typically open ~May-Oct).
+  # ------------------------------------------------------------------
+  - key: larch-mountain-stargaze
+    place: {name: Larch Mountain, kind: peak, lat: 45.5289, lng: -122.0880}
+    activity: stargaze
+    affordance:
+      difficulty: 1
+      typical_duration: "2 hours"
+      dog_ok: true
+      kid_ok: true
+      base_quality: 0.75
+    windows:
+      - wtype: astronomical
+        is_gate: false
+        multiplier: 1.6
+        predicate:
+          {feed: "astro:45.53,-122.09:sun_elevation_deg", op: "<=", value: -12}
+      - wtype: seasonal
+        is_gate: false
+        multiplier: 1.3
+        predicate: {months: [5, 6, 7, 8, 9, 10]}
+
+  # ------------------------------------------------------------------
+  # Seasonal bloom — the April window.
+  # ------------------------------------------------------------------
+  - key: dog-mountain-wildflower
+    place: {name: Dog Mountain, kind: peak, lat: 45.7551, lng: -121.7757}
+    activity: wildflower_view
+    affordance:
+      difficulty: 4
+      typical_duration: "4 hours"
+      dog_ok: true
+      kid_ok: false
+      base_quality: 0.85
+    access_note:
+      kind: trailhead
+      lat: 45.7095
+      lng: -121.7080
+      notes: >-
+        Dog Mountain trailhead: USFS permit required on weekends during the
+        spring wildflower season (late Apr-mid Jun, recreation.gov); NW
+        Forest Pass year-round. Columbia Gorge Express shuttle bypasses the
+        permit requirement.
+    windows:
+      - wtype: seasonal
+        is_gate: false
+        multiplier: 2.0
+        predicate: {months: [4, 5, 6]}

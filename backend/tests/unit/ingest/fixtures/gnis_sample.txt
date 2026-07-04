@@ -1,0 +1,14 @@
+feature_id|feature_name|feature_class|state_name|state_numeric|county_name|county_numeric|map_name|date_created|date_edited|bgn_type|bgn_authority|bgn_date|prim_lat_dms|prim_long_dms|prim_lat_dec|prim_long_dec|source_lat_dms|source_long_dms|source_lat_dec|source_long_dec
+1116769|Adams Lake|Lake|Oregon|41|Columbia|009|Deer Island|11/28/1980|04/03/2019||||455710N|1225122W|45.9528505|-122.8561083|||0.0|0.0
+1117063|Ash Slough|Lake|Oregon|41|Multnomah|051|Sauvie Island|11/28/1980|03/26/2019||||454040N|1225022W|45.6776855|-122.8393551|||0.0|0.0
+1117125|Bachelor Spring|Spring|Oregon|41|Wasco|065|White Salmon|11/28/1980|01/02/2013||||454000N|1212549W|45.6665608|-121.4303979|||0.0|0.0
+1117520|Benham Slough|Lake|Oregon|41|Columbia|009|Deer Island|11/28/1980|04/03/2019||||455609N|1225038W|45.9357751|-122.8439167|||0.0|0.0
+1117848|Blue Lake|Lake|Oregon|41|Multnomah|051|Camas|11/28/1980|03/26/2019||||453313N|1222656W|45.5537092|-122.4489842|||0.0|0.0
+1117932|Bonnie Falls|Falls|Oregon|41|Columbia|009|Chapman|11/28/1980|01/02/2013||||454815N|1225616W|45.8040847|-122.9376661|||0.0|0.0
+1118014|Box Lake|Lake|Oregon|41|Columbia|009|Deer Island|11/28/1980|04/03/2019||||455732N|1225003W|45.9589228|-122.8342828|||0.0|0.0
+1118173|Bryce Lake|Lake|Oregon|41|Columbia|009|Saint Helens|11/28/1980|03/26/2019||||454909N|1224950W|45.8192033|-122.8306272|||0.0|0.0
+224325|Goose Lake|Lake|California|06|Modoc|049|West of Willow Ranch|01/19/1981|05/29/2020|Official|Board Decision|01/01/1965|415641N|1202510W|41.9448372|-120.419492|||0.0|0.0
+234305|Lake Miller|Lake|Oregon|41|Klamath|035|Worden|01/19/1981|12/04/2019||||420040N|1215210W|42.0111553|-121.8693461|||0.0|0.0
+264090|Nicks Spring|Spring|Oregon|41|Jackson|029|Dutchman Peak|01/19/1981|01/02/2013||||420013N|1225921W|42.0035769|-122.9892814|||0.0|0.0
+220448|Camp Creek|Stream|California|06|Siskiyou|093|Iron Gate Reservoir|01/19/1981|07/03/2009||||415823N|1222613W|41.972918|-122.436966|420331N|1222837W|42.0587493|-122.4769682
+222880|East Fork Beaver Creek|Stream|California|06|Siskiyou|093|Copco|01/19/1981|05/24/2007||||415943N|1221834W|41.9952778|-122.3094444|420104N|1221654W|42.0177778|-122.2816667

@@ -1,0 +1,76 @@
+{
+  "RECDATA": [
+    {
+      "FacilityID": "251434",
+      "LegacyFacilityID": "",
+      "OrgFacilityID": "",
+      "ParentOrgID": "131",
+      "FacilityName": "Multnomah Falls",
+      "FacilityDescription": "Iconic 620-foot waterfall in the Columbia River Gorge National Scenic Area.",
+      "FacilityTypeDescription": "Facility",
+      "FacilityUseFeeDescription": "",
+      "FacilityDirections": "Exit 31 off I-84.",
+      "FacilityPhone": "",
+      "FacilityEmail": "",
+      "FacilityReservationURL": "",
+      "FacilityMapURL": "",
+      "FacilityAdaAccess": "Y",
+      "GEOJSON": {"TYPE": "Point", "COORDINATES": [-122.117, 45.5762]},
+      "FacilityLongitude": -122.117,
+      "FacilityLatitude": 45.5762,
+      "Keywords": "waterfall,gorge",
+      "StayLimit": "",
+      "Reservable": false,
+      "Enabled": true,
+      "LastUpdatedDate": "2026-05-01"
+    },
+    {
+      "FacilityID": "10004152",
+      "FacilityName": "Multnomah Falls Timed Use Permit",
+      "FacilityDescription": "Timed entry permit required to park at the I-84 lot, late May through early September.",
+      "FacilityTypeDescription": "Permit",
+      "FacilityLongitude": -122.1168,
+      "FacilityLatitude": 45.5761,
+      "Reservable": true,
+      "Enabled": true,
+      "LastUpdatedDate": "2026-05-01"
+    },
+    {
+      "FacilityID": "232876",
+      "FacilityName": "OXBOW REGIONAL PARK CAMPGROUND",
+      "FacilityDescription": "Campground on the Sandy River.",
+      "FacilityTypeDescription": "Campground",
+      "FacilityLongitude": -122.294,
+      "FacilityLatitude": 45.4949,
+      "Reservable": true,
+      "Enabled": true,
+      "LastUpdatedDate": "2026-05-01"
+    },
+    {
+      "FacilityID": "233333",
+      "FacilityName": "Steens Mountain Wilderness",
+      "FacilityDescription": "Far outside the Portland polygon.",
+      "FacilityTypeDescription": "Facility",
+      "FacilityLongitude": -118.575,
+      "FacilityLatitude": 42.637,
+      "Reservable": false,
+      "Enabled": true,
+      "LastUpdatedDate": "2026-05-01"
+    },
+    {
+      "FacilityID": "244444",
+      "FacilityName": "No Coordinates Facility",
+      "FacilityDescription": "RIDB rows sometimes carry 0/None coordinates.",
+      "FacilityTypeDescription": "Facility",
+      "FacilityLongitude": 0,
+      "FacilityLatitude": 0,
+      "Reservable": false,
+      "Enabled": true,
+      "LastUpdatedDate": "2026-05-01"
+    }
+  ],
+  "METADATA": {
+    "RESULTS": {"CURRENT_COUNT": 5, "TOTAL_COUNT": 5},
+    "SEARCH_PARAMETERS": {"QUERY": "", "LIMIT": 50, "OFFSET": 0}
+  }
+}
