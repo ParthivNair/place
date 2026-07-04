@@ -17,14 +17,24 @@ new work should extend them, not re-derive them.
 
 ## Current state of the code
 
-[src/main.py](src/main.py) is the original seed backend: FastAPI + MongoDB with basic
-location/review CRUD and a hand-rolled bounding-box search. It predates the docs and is the
-starting point of the migration sequence in
-[docs/04-ARCHITECTURE.md](docs/04-ARCHITECTURE.md), which replaces it step by step with
-Postgres + PostGIS + pgvector, the claims/affordances schema, and the condition-evaluator cron.
+[backend/](backend/) implements the architecture in
+[docs/04-ARCHITECTURE.md](docs/04-ARCHITECTURE.md) through the temporal-feed milestone (PR-1
+to PR-7 of its migration sequence): Postgres 16 + PostGIS + pgvector, the full experience-graph
+schema, the condition evaluator with live adapters (USGS NWIS, Open-Meteo/NWS, NOAA CO-OPS,
+SNOTEL, NWAC, AirNow, sun/moon), Overpass/GNIS/RIDB/USFS ingestion, the launch bindings, the
+FastAPI surface (feed, places, saves, trips, verdicts, magic-link auth, admin review queue),
+and the key-gated extraction pipeline. The original Mongo seed (`src/`) is replaced.
 
 ```bash
-# legacy seed backend (to be migrated per docs/04-ARCHITECTURE.md)
-cd src && docker compose up -d   # Mongo
-python main.py                   # FastAPI on :8000
+make db-up      # Postgres (PostGIS + pgvector) via docker compose, port 5433
+make migrate    # Alembic baseline
+make seed       # Overpass + GNIS skeleton places (keyless, live APIs)
+cd backend && .venv/bin/python -m place.ingest.cli bindings   # launch bindings
+make evaluate   # one live evaluator sweep -> good_now
+make api        # FastAPI on :8000  ->  GET /feed?lat=45.512&lng=-122.658
+make test       # pytest (unit + integration; live tests: pytest -m live)
 ```
+
+Runs end to end with **zero credentials** — every live feed is a free public API. Optional
+keys (Anthropic extraction, Reddit corpus, RIDB, AirNow, Resend email, Sentry) are documented
+in [.env.example](.env.example); copy it to `.env` and fill what you need.
