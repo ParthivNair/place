@@ -1,0 +1,47 @@
+[
+ {
+  "DateObserved": "2026-07-03 ",
+  "HourObserved": 15,
+  "LocalTimeZone": "PST",
+  "ReportingArea": "Portland",
+  "StateCode": "OR",
+  "Latitude": 45.538,
+  "Longitude": -122.656,
+  "ParameterName": "O3",
+  "AQI": 38,
+  "Category": {
+   "Number": 1,
+   "Name": "Good"
+  }
+ },
+ {
+  "DateObserved": "2026-07-03 ",
+  "HourObserved": 15,
+  "LocalTimeZone": "PST",
+  "ReportingArea": "Portland",
+  "StateCode": "OR",
+  "Latitude": 45.538,
+  "Longitude": -122.656,
+  "ParameterName": "PM2.5",
+  "AQI": 54,
+  "Category": {
+   "Number": 2,
+   "Name": "Moderate"
+  }
+ },
+ {
+  "DateObserved": "2026-07-03 ",
+  "HourObserved": 15,
+  "LocalTimeZone": "PST",
+  "ReportingArea": "Salem",
+  "StateCode": "OR",
+  "Latitude": 44.943,
+  "Longitude": -123.035,
+  "ParameterName": "PM2.5",
+  "AQI": -1,
+  "Category": {
+   "Number": 1,
+   "Name": "Good"
+  }
+ }
+]
