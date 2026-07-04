@@ -30,7 +30,9 @@ Five stages. Nothing skips a stage; nothing auto-publishes.
 
 **Stage 1 — Fetch.** Per-source fetchers write raw documents to the cache with `{source, url, fetched_at, robots_ok}`. Reddit through the official API; Oregon Hikers throttled and robots.txt-compliant. Fetchers are dumb on purpose — all intelligence lives downstream, so a fetcher for a new source in metro 2 is an afternoon of work.
 
-**Stage 2 — Claude batch extraction.** Each document goes through a Haiku-class model on the batch API (batch-tier pricing, no latency requirement) with the **frozen claim JSON schema**:
+**Stage 2 — LLM extraction (provider-pluggable).** Each document goes through an LLM extractor with the **frozen claim JSON schema**. The provider is a config switch (`EXTRACTION_PROVIDER`), and every claim's `extractor_version` records which provider/model produced it, so providers can be changed or mixed without corrupting re-extraction diffs.
+
+> **Decision update (2026-07-04):** pre-revenue, the default provider is **DeepSeek v4 Pro** (`deepseek-v4-pro`: $0.435/M input, $0.87/M output, automatic prefix caching, no batch API — runs as a concurrency-limited loop), which prices the seed run at **~$35** instead of ≤$200. The founder switches to the committed Anthropic path (Haiku-class on the batch API, below) once revenue starts, by setting `EXTRACTION_PROVIDER=anthropic`. Quality gates are unchanged either way: nothing auto-publishes, the review queue and the ≥2-source/verification gates catch extraction errors regardless of extractor, and calibration data per claim-type will tell us empirically whether the cheaper extractor's precision costs more founder review time than it saves in dollars.
 
 ```json
 {
@@ -47,7 +49,7 @@ Five stages. Nothing skips a stage; nothing auto-publishes.
 
 Two fields are load-bearing. `observed_date` is **when the experience happened, not when it was posted** — a 2014 trip report about a rope swing is a decayed access claim, not a fresh one; the confidence model in [01-EXPERIENCE-GRAPH.md](01-EXPERIENCE-GRAPH.md) runs on this date. `verbatim_quote` is minimal evidence held internally for review and audit, **never republished** (§5). The schema is frozen so that claims extracted in 2026 and claims re-extracted in 2028 are row-compatible.
 
-**Cost math.** ~150k documents × ~400 tokens average ≈ **60M input tokens**. At Haiku-class batch pricing with structured, cacheable system prompts, the full corpus extracts for **≤$200 one-time**; the incremental crawl (new Reddit threads, new forum posts) runs **~$20/month**. This is why the strategy exists at all: structured extraction at this scale was simply not feasible pre-LLM. That the same $200 is available to a competitor is fine — the extracted layer is the drawbridge, not the moat (§4).
+**Cost math.** ~150k documents × ~400 tokens average ≈ **60M input tokens**. At Haiku-class batch pricing with structured, cacheable system prompts, the full corpus extracts for **≤$200 one-time** (~$35 on the pre-revenue DeepSeek default); the incremental crawl (new Reddit threads, new forum posts) runs **~$20/month** (single-digit dollars on DeepSeek). This is why the strategy exists at all: structured extraction at this scale was simply not feasible pre-LLM. That the same $200 is available to a competitor is fine — the extracted layer is the drawbridge, not the moat (§4).
 
 **Re-extraction as models improve.** Every claim stores `extractor_version`. When a materially better model ships, the cached corpus is re-run (another ≤$200-class spend), new claims diffed against old, and improvements flow through the same review queue. The corpus is bought once and harvested repeatedly — extraction quality compounds *without new data acquisition*.
 

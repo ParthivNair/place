@@ -1,7 +1,8 @@
 """Application settings.
 
 Single Settings object, loaded from the environment and the repo-root `.env`.
-Key-gated integrations (RIDB, Anthropic, Reddit, AirNow, Resend, Sentry, VAPID)
+Key-gated integrations (RIDB, Anthropic, DeepSeek, Reddit, AirNow, Resend,
+Sentry, VAPID)
 default to None — adapters/workers must raise a clear MissingCredential and
 skip-with-log when the key is absent, never fake a response.
 """
@@ -63,9 +64,19 @@ class Settings(BaseSettings):
     # Founder identity is an env allowlist until users has an is_founder column.
     founder_email: str | None = None
 
+    # Extraction provider: "auto" resolves to deepseek when DEEPSEEK_API_KEY is
+    # set (pre-revenue default — cheapest quality option), else anthropic when
+    # ANTHROPIC_API_KEY is set. Explicit "deepseek"/"anthropic" require their key.
+    extraction_provider: str = "auto"
+    deepseek_model: str = "deepseek-v4-pro"
+    deepseek_base_url: str = "https://api.deepseek.com"
+    # No batch API on DeepSeek — extraction is a concurrency-limited request loop.
+    deepseek_concurrency: int = 8
+
     # --- key-gated (None => component raises MissingCredential and is skipped) ---
     ridb_api_key: str | None = None
     anthropic_api_key: str | None = None
+    deepseek_api_key: str | None = None
     reddit_client_id: str | None = None
     reddit_client_secret: str | None = None
     reddit_user_agent: str | None = None
@@ -101,6 +112,34 @@ class Settings(BaseSettings):
         if not value:
             raise MissingCredential(var.upper())
         return value
+
+
+def resolve_extraction_provider(
+    settings: Settings | None = None, provider: str | None = None
+) -> str:
+    """Resolve which extraction provider to use ("deepseek" | "anthropic").
+
+    "auto" picks deepseek when its key is set (pre-revenue default), else
+    anthropic; explicit choices require their key. Raises MissingCredential
+    when the resolved provider has no key, ValueError on unknown names.
+    """
+    settings = settings or get_settings()
+    provider = (provider or settings.extraction_provider).lower()
+    if provider == "auto":
+        if settings.deepseek_api_key:
+            return "deepseek"
+        if settings.anthropic_api_key:
+            return "anthropic"
+        raise MissingCredential("DEEPSEEK_API_KEY or ANTHROPIC_API_KEY")
+    if provider == "deepseek":
+        settings.require("deepseek_api_key")
+        return "deepseek"
+    if provider == "anthropic":
+        settings.require("anthropic_api_key")
+        return "anthropic"
+    raise ValueError(
+        f"unknown extraction provider {provider!r}; expected auto, deepseek, or anthropic"
+    )
 
 
 @lru_cache

@@ -16,15 +16,17 @@ from place.extract.schema import ExtractedClaim
 from place.extract.worker import (
     DEFAULT_MODEL,
     EXTRACTION_SYSTEM_PROMPT,
-    EXTRACTOR_VERSION,
     LLM_EXTRACTED_LOG_ODDS,
     CachedDoc,
     build_batch_requests,
     claim_row,
     collect_results,
+    extractor_version,
     html_to_text,
     iter_cached_docs,
 )
+
+ANTHROPIC_VERSION = extractor_version("anthropic", DEFAULT_MODEL)
 
 # ---------------------------------------------------------------------------
 # fake cached corpus
@@ -166,10 +168,10 @@ def test_claim_row_shape() -> None:
             "self_confidence": 0.7,
         }
     )
-    row = claim_row(claim, doc)
+    row = claim_row(claim, doc, ANTHROPIC_VERSION)
     assert row["status"] == "review"
     assert row["stype"] == "llm_extracted"
-    assert row["extractor_ver"] == EXTRACTOR_VERSION
+    assert row["extractor_ver"] == ANTHROPIC_VERSION
     assert row["cclass"] == "hazard_calibration"
     assert row["source_domain"] == "reddit.com"
     assert row["place_ref"] == "High Rocks"  # preserved for resolution/parking
@@ -247,7 +249,7 @@ def test_collect_results_validates_and_stores(corpus: Path, tmp_path: Path) -> N
     assert len(records[doc_ids[0]]["claims"]) == 1
     assert records[doc_ids[1]]["claims"] == []
     assert records[doc_ids[2]]["errors"] == ["batch result: errored"]
-    assert records[doc_ids[0]]["extractor_ver"] == EXTRACTOR_VERSION
+    assert records[doc_ids[0]]["extractor_ver"] == ANTHROPIC_VERSION
 
 
 def test_collect_results_reports_validation_errors(corpus: Path, tmp_path: Path) -> None:

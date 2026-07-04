@@ -1,16 +1,19 @@
-"""Extraction worker — Claude batch API over the cached corpus (docs/03 §2).
+"""Extraction worker — LLM extraction over the cached corpus (docs/03 §2).
 
-Stage 2 of the pipeline. Batch-tier, offline, no latency requirement:
-each cached document becomes one batch request against a Haiku-class model
-(docs/03 cost math: ~150k docs ≈ 60M input tokens ≈ <=$200 one-time) with the
-frozen claim JSON schema. Nothing auto-publishes — every extracted claim is
-stored with status='review', source_type='llm_extracted', and an
-extractor_version tag so the corpus can be cheaply re-extracted as models
-improve.
+Stage 2 of the pipeline. Offline, no latency requirement, provider-pluggable:
+pre-revenue the default is DeepSeek v4 Pro (cheapest quality option, plain
+chat-completions loop — see place.extract.providers); at revenue time one env
+flip (EXTRACTION_PROVIDER=anthropic) switches back to the Claude batch path
+below, where each cached document becomes one batch request against a
+Haiku-class model (docs/03 cost math: ~150k docs ≈ 60M input tokens ≈ <=$200
+one-time). Both providers share the frozen claim JSON schema and the same
+system prompt. Nothing auto-publishes — every extracted claim is stored with
+status='review', source_type='llm_extracted', and an extractor_version tag so
+the corpus can be cheaply re-extracted as models improve.
 
 Key-gated: request BUILDING is pure and runs without any credential;
-submitting/collecting a batch requires ANTHROPIC_API_KEY and raises
-MissingCredential otherwise.
+actually calling a provider requires its API key and raises MissingCredential
+otherwise.
 """
 
 from __future__ import annotations
@@ -27,7 +30,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 
-from place.config import Settings, get_settings
+from place.config import Settings, get_settings, resolve_extraction_provider
 from place.extract.schema import (
     SCHEMA_VERSION,
     ExtractedClaim,
@@ -37,10 +40,6 @@ from place.extract.schema import (
 )
 
 log = logging.getLogger(__name__)
-
-# Stored on every claim (claims.extractor_ver); bump when the prompt or model
-# changes materially — re-extraction diffs run on this tag (docs/03 §2).
-EXTRACTOR_VERSION = f"haiku45-batch-v1-schema{SCHEMA_VERSION}"
 
 # docs/03 §2: "a Haiku-class model on the batch API".
 DEFAULT_MODEL = "claude-haiku-4-5"
@@ -216,7 +215,12 @@ def iter_cached_docs(cache_dir: Path | None = None) -> Iterator[CachedDoc]:
 # ---------------------------------------------------------------------------
 
 
-def _document_prompt(doc: CachedDoc) -> str:
+def _document_prompt(
+    doc: CachedDoc, *, instruction: str = "Extract the claims as a JSON array."
+) -> str:
+    """Per-document user message. ``instruction`` is the closing format line —
+    providers whose output shape differs (DeepSeek's json_object mode) override
+    it so the user message never contradicts their system-message addendum."""
     posted = doc.posted_date.isoformat() if doc.posted_date else "unknown"
     body = doc.text[:MAX_DOC_CHARS]
     return (
@@ -226,7 +230,7 @@ def _document_prompt(doc: CachedDoc) -> str:
         f"---\n"
         f"{body}\n"
         f"---\n"
-        "Extract the claims as a JSON array."
+        f"{instruction}"
     )
 
 
@@ -267,7 +271,18 @@ def build_batch_requests(
 # ---------------------------------------------------------------------------
 
 
-def claim_row(claim: ExtractedClaim, doc: CachedDoc) -> dict[str, Any]:
+def extractor_version(provider: str, model: str) -> str:
+    """The claims.extractor_ver tag — re-extraction diffs run on it (docs/03 §2).
+
+    Per-provider so DeepSeek and Anthropic extractions of the same corpus are
+    distinguishable; changes when the prompt, model, or schema changes
+    materially. The anthropic path keeps its "batch" marker.
+    """
+    pipeline = "batch-v1" if provider == "anthropic" else "v1"
+    return f"{provider}:{model}/{pipeline}-schema{SCHEMA_VERSION}"
+
+
+def claim_row(claim: ExtractedClaim, doc: CachedDoc, extractor_ver: str) -> dict[str, Any]:
     """Shape one validated claim into a pre-resolution claims-table row.
 
     ``affordance_id`` is intentionally absent — entity resolution
@@ -285,7 +300,7 @@ def claim_row(claim: ExtractedClaim, doc: CachedDoc) -> dict[str, Any]:
         "quote_internal": claim.verbatim_quote,
         "condition_text": claim.condition_text,
         "observed_date": claim.observed_date.isoformat() if claim.observed_date else None,
-        "extractor_ver": EXTRACTOR_VERSION,
+        "extractor_ver": extractor_ver,
         "self_conf": claim.self_confidence,
         "status": "review",
         "log_odds": LLM_EXTRACTED_LOG_ODDS,
@@ -331,6 +346,7 @@ def collect_results(
     *,
     client: Any = None,
     out_dir: Path | None = None,
+    model: str = DEFAULT_MODEL,
 ) -> list[dict[str, Any]]:
     """Stream batch results, validate against the frozen schema, store rows.
 
@@ -343,6 +359,7 @@ def collect_results(
     client = client or _anthropic_client()
     out_dir = (out_dir or get_settings().data_cache_dir / "extracted") / batch_id
     out_dir.mkdir(parents=True, exist_ok=True)
+    version = extractor_version("anthropic", model)
     rows: list[dict[str, Any]] = []
     for result in client.messages.batches.results(batch_id):
         custom_id = result.custom_id
@@ -350,7 +367,7 @@ def collect_results(
         record: dict[str, Any] = {
             "custom_id": custom_id,
             "batch_id": batch_id,
-            "extractor_ver": EXTRACTOR_VERSION,
+            "extractor_ver": version,
             "result_type": result.result.type,
             "claims": [],
             "errors": [],
@@ -360,7 +377,7 @@ def collect_results(
                 b.text for b in result.result.message.content if b.type == "text"
             )
             claims, errors = parse_claims_json(text)
-            record["claims"] = [claim_row(c, doc) for c in claims]
+            record["claims"] = [claim_row(c, doc, version) for c in claims]
             record["errors"] = errors
             rows.extend(record["claims"])
         elif doc is None:
@@ -375,18 +392,36 @@ def collect_results(
 
 
 def run_extraction(
-    *, cache_dir: Path | None = None, model: str = DEFAULT_MODEL, poll_s: float = 60.0
+    *,
+    cache_dir: Path | None = None,
+    provider: str | None = None,
+    model: str | None = None,
+    poll_s: float = 60.0,
 ) -> list[dict[str, Any]]:
-    """End-to-end: cached corpus -> batch -> validated claim rows on disk.
+    """End-to-end: cached corpus -> provider -> validated claim rows on disk.
 
-    Requires ANTHROPIC_API_KEY (MissingCredential otherwise).
+    Dispatches on the resolved provider (EXTRACTION_PROVIDER, or the
+    ``provider`` override): DeepSeek runs a concurrency-limited request loop,
+    Anthropic the batch path. Requires the resolved provider's API key
+    (MissingCredential otherwise).
     """
     docs = {doc.doc_id: doc for doc in iter_cached_docs(cache_dir)}
     if not docs:
         log.warning("no cached documents found; nothing to extract")
         return []
-    client = _anthropic_client()
+    settings = get_settings()
+    resolved = resolve_extraction_provider(settings, provider)
+    if resolved == "deepseek":
+        import asyncio
+
+        from place.extract.providers import run_deepseek_extraction
+
+        return asyncio.run(
+            run_deepseek_extraction(docs, model=model, settings=settings)
+        )
+    model = model or DEFAULT_MODEL
+    client = _anthropic_client(settings)
     requests = build_batch_requests(docs.values(), model=model)
     batch_id = submit_batch(requests, client=client)
     wait_for_batch(batch_id, client=client, poll_s=poll_s)
-    return collect_results(batch_id, docs, client=client)
+    return collect_results(batch_id, docs, client=client, model=model)

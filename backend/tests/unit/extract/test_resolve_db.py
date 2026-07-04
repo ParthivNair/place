@@ -10,7 +10,9 @@ from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
 from place.extract.resolve import find_candidates, resolve_claim_row
-from place.extract.worker import EXTRACTOR_VERSION
+from place.extract.worker import DEFAULT_MODEL, extractor_version
+
+EXTRACTOR_VERSION = extractor_version("anthropic", DEFAULT_MODEL)
 
 pytestmark = pytest.mark.integration
 
