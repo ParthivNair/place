@@ -1,4 +1,4 @@
-.PHONY: db-up migrate seed seed-demo evaluate api test lint
+.PHONY: db-up migrate seed seed-demo evaluate api test lint vapid
 
 db-up:
 	docker compose up -d --build
@@ -27,3 +27,7 @@ test:
 
 lint:
 	cd backend && .venv/bin/ruff check place tests
+
+# Prints VAPID_* lines ready to paste into .env (SUBJECT=mailto:you@example.com to override)
+vapid:
+	cd backend && .venv/bin/python -m place.api.vapid_keygen --subject $(or $(SUBJECT),mailto:admin@example.com)
