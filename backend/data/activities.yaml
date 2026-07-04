@@ -1,0 +1,29 @@
+# Closed activity vocabulary seed (~25 launch verbs; grows in data, not code).
+# hazard_class: true => stricter publication + serving gates (docs/01 section 4 rule 3).
+activities:
+  - {id: wild_swim,       display_name: Wild swim,        hazard_class: true}
+  - {id: cliff_jump,      display_name: Cliff jump,       hazard_class: true}
+  - {id: snow_travel,     display_name: Snow travel,      hazard_class: true}
+  - {id: waterfall_view,  display_name: Waterfall view,   hazard_class: false}
+  - {id: tidepool,        display_name: Tidepool,         hazard_class: false}
+  - {id: snowshoe,        display_name: Snowshoe,         hazard_class: false}
+  - {id: wildflower_view, display_name: Wildflower view,  hazard_class: false}
+  - {id: larch_view,      display_name: Larch view,       hazard_class: false}
+  - {id: hike,            display_name: Hike,             hazard_class: false}
+  - {id: trail_run,       display_name: Trail run,        hazard_class: false}
+  - {id: paddle,          display_name: Paddle,           hazard_class: false}
+  - {id: kayak,           display_name: Kayak,            hazard_class: false}
+  - {id: fish,            display_name: Fish,             hazard_class: false}
+  - {id: stargaze,        display_name: Stargaze,         hazard_class: false}
+  - {id: sunset_view,     display_name: Sunset view,      hazard_class: false}
+  - {id: birdwatch,       display_name: Birdwatch,        hazard_class: false}
+  - {id: forage,          display_name: Forage,           hazard_class: false}
+  - {id: mountain_bike,   display_name: Mountain bike,    hazard_class: false}
+  - {id: climb,           display_name: Rock climb,       hazard_class: true}
+  - {id: picnic,          display_name: Picnic,           hazard_class: false}
+  - {id: camp,            display_name: Camp,             hazard_class: false}
+  - {id: hot_spring,      display_name: Hot spring soak,  hazard_class: false}
+  - {id: beachcomb,       display_name: Beachcomb,        hazard_class: false}
+  - {id: sled,            display_name: Sled,             hazard_class: false}
+  - {id: viewpoint,       display_name: Viewpoint visit,  hazard_class: false}
+  - {id: swim_hole_scout, display_name: Swim-hole scout,  hazard_class: false}

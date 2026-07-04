@@ -1,0 +1,23 @@
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: docker/postgres.Dockerfile
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-place}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-place}
+      POSTGRES_DB: ${POSTGRES_DB:-place}
+    ports:
+      # Host 5433 -> container 5432 (Homebrew psql 14 may own 5432 on dev machines).
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-place} -d ${POSTGRES_DB:-place}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    volumes:
+      - place_pgdata:/var/lib/postgresql/data
+
+volumes:
+  place_pgdata:

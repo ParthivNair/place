@@ -1,2 +1,11 @@
 venv/
+.venv/
 .idea/
+.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+backend/data/cache/*
+!backend/data/cache/.gitkeep
+*.egg-info/

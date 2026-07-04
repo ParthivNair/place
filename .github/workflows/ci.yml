@@ -1,0 +1,37 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build and start postgres (postgis + pgvector)
+        run: docker compose up -d --build --wait
+
+      - name: Install backend
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Ruff
+        working-directory: backend
+        run: ruff check place tests
+
+      - name: Migrate
+        working-directory: backend
+        run: alembic upgrade head
+
+      - name: Pytest (unit + integration, no live)
+        working-directory: backend
+        run: python -m pytest -q -m "not live"
