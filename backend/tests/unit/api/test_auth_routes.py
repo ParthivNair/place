@@ -11,7 +11,12 @@ from place.config import Settings
 from .conftest import FakeResult
 
 
-def test_magic_link_dev_mode_logs_link(client, caplog) -> None:
+def test_magic_link_dev_mode_logs_link(client, caplog, monkeypatch) -> None:
+    # Hermetic dev mode: a real RESEND_API_KEY in the developer's .env would
+    # otherwise route this through Resend (env var overrides env_file; empty
+    # string is falsy on the resend_api_key branch).
+    monkeypatch.setenv("RESEND_API_KEY", "")
+    security.get_api_settings.cache_clear()
     with caplog.at_level(logging.INFO, logger="place.api.auth"):
         resp = client.post("/auth/magic-link", json={"email": "new@example.com"})
     assert resp.status_code == 202

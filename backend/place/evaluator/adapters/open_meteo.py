@@ -1,22 +1,29 @@
 """Open-Meteo point-forecast adapter, with api.weather.gov gridpoint fallback.
 
 Primary: https://api.open-meteo.com/v1/forecast — current 2 m air temperature
-(°F) plus hourly observed precipitation (inches) for the trailing window
-(default 72 h, the waterfall-binding accumulation window; the DSL's
-``agg: sum / window_h`` recomputes the sum from the stored hourly readings).
-Forecast hours are excluded: only hourly points at or before the payload's
-`current.time` are emitted, so `observed_at` is never in the future.
+(°F) and current 10 m wind speed (mph) plus hourly observed precipitation
+(inches) for the trailing window (default 72 h, the waterfall-binding
+accumulation window; the DSL's ``agg: sum / window_h`` recomputes the sum from
+the stored hourly readings). Forecast hours are excluded: only hourly points
+at or before the payload's `current.time` are emitted, so `observed_at` is
+never in the future.
 
 Fallback: api.weather.gov /points/{lat},{lng} -> forecastHourly. It provides
-the current-hour temperature forecast only — NWS gridpoints carry no observed
-precipitation series — and emits under the SAME feed ids as Open-Meteo, since
-the feed id names the conceptual point metric, not the transport. Callers who
-need the docs' ``nws:`` prefix (docs/01 §3 examples b/d) can pass
-``provider="nws"``.
+the current-hour temperature forecast, plus wind speed when the period's
+``windSpeed`` string is a clean single value in mph or km/h ("3 mph",
+"10 km/h" — km/h converted). Range-formatted strings ("5 to 10 mph") and any
+other unit emit NO wind reading — never a value in the wrong unit; the wind
+feed then goes stale-as-unknown per docs/04 §4 rule 1, which is the intended
+degradation. NWS gridpoints carry no observed precipitation series, so precip
+is likewise absent from the fallback. Readings emit under the SAME feed ids
+as Open-Meteo, since the feed id names the conceptual point metric, not the
+transport. Callers who need the docs' ``nws:`` prefix (docs/01 §3 examples
+b/d) can pass ``provider="nws"``.
 """
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from typing import Any
@@ -33,6 +40,12 @@ PROVIDER = "open_meteo"
 
 AIR_TEMP_F = "air_temp_f"
 PRECIP_IN = "precip_in"
+WIND_SPEED_MPH = "wind_speed_mph"
+
+# NWS forecastHourly windSpeed is a human-formatted string; only a clean
+# single value in a known unit is mappable (ranges like "5 to 10 mph" are not).
+_NWS_WIND_RE = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*(mph|km/h)\s*$")
+_KMH_PER_MPH = 1.609344
 
 
 async def fetch(
@@ -43,16 +56,17 @@ async def fetch(
     provider: str = PROVIDER,
     client: httpx.AsyncClient | None = None,
 ) -> list[Reading]:
-    """Current air temp (°F) + trailing `past_hours` of observed hourly precip (in)."""
+    """Current air temp (°F) + wind (mph) + trailing `past_hours` of hourly precip (in)."""
     past_days = max(1, -(-past_hours // 24))  # ceil
     params = {
         "latitude": f"{lat:.4f}",
         "longitude": f"{lng:.4f}",
-        "current": "temperature_2m,precipitation",
+        "current": "temperature_2m,precipitation,wind_speed_10m",
         "hourly": "precipitation",
         "past_days": str(past_days),
         "forecast_days": "1",
         "temperature_unit": "fahrenheit",
+        "wind_speed_unit": "mph",
         "precipitation_unit": "inch",
         "timeformat": "unixtime",
         "timezone": "UTC",
@@ -80,6 +94,16 @@ def parse(
             unit="degF",
         )
     ]
+    wind = current.get("wind_speed_10m")
+    if wind is not None:
+        readings.append(
+            Reading(
+                feed_id=make_feed_id(provider, ref, WIND_SPEED_MPH),
+                value=float(wind),
+                observed_at=datetime.fromtimestamp(now_ts, tz=UTC),
+                unit="mph",
+            )
+        )
     hourly = payload.get("hourly", {})
     cutoff = now_ts - past_hours * 3600
     precip_id = make_feed_id(provider, ref, PRECIP_IN)
@@ -104,7 +128,7 @@ async def fetch_nws_fallback(
     provider: str = PROVIDER,
     client: httpx.AsyncClient | None = None,
 ) -> list[Reading]:
-    """api.weather.gov gridpoint fallback: current-hour temperature only."""
+    """api.weather.gov gridpoint fallback: current-hour temperature (+ wind if clean)."""
     points = await get_json(NWS_POINTS_URL.format(lat=lat, lng=lng), client=client)
     hourly_url = points["properties"]["forecastHourly"]
     forecast = await get_json(hourly_url, params={"units": "us"}, client=client)
@@ -124,14 +148,42 @@ def parse_nws_hourly(
     first = periods[0]
     if first.get("temperatureUnit") not in (None, "F"):
         raise ValueError(f"unexpected NWS temperature unit: {first['temperatureUnit']}")
-    return [
+    ref = point_ref(lat, lng)
+    observed_at = datetime.fromisoformat(first["startTime"])
+    readings = [
         Reading(
-            feed_id=make_feed_id(provider, point_ref(lat, lng), AIR_TEMP_F),
+            feed_id=make_feed_id(provider, ref, AIR_TEMP_F),
             value=float(first["temperature"]),
-            observed_at=datetime.fromisoformat(first["startTime"]),
+            observed_at=observed_at,
             unit="degF",
         )
     ]
+    wind_mph = _parse_nws_wind_mph(first.get("windSpeed"))
+    if wind_mph is not None:
+        readings.append(
+            Reading(
+                feed_id=make_feed_id(provider, ref, WIND_SPEED_MPH),
+                value=wind_mph,
+                observed_at=observed_at,
+                unit="mph",
+            )
+        )
+    return readings
+
+
+def _parse_nws_wind_mph(wind_speed: object) -> float | None:
+    """Map a clean single-value NWS windSpeed string to mph; None otherwise.
+
+    Never guesses: a range ("5 to 10 mph") or an unrecognized unit yields no
+    reading rather than a value in the wrong unit (see module docstring).
+    """
+    if not isinstance(wind_speed, str):
+        return None
+    match = _NWS_WIND_RE.match(wind_speed)
+    if match is None:
+        return None
+    value, unit = float(match.group(1)), match.group(2)
+    return value / _KMH_PER_MPH if unit == "km/h" else value
 
 
 async def fetch_with_fallback(
@@ -157,8 +209,9 @@ async def fetch_with_fallback(
 class OpenMeteoAdapter(FeedAdapter):
     """One point feed, e.g. ``open_meteo:45.45,-121.65:air_temp_f``.
 
-    A single fetch returns the sibling readings for the point (temp + hourly
-    precip) — the sweep stores whatever comes back, keyed by Reading.feed_id.
+    A single fetch returns the sibling readings for the point (temp + wind +
+    hourly precip) — the sweep stores whatever comes back, keyed by
+    Reading.feed_id.
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

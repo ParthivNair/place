@@ -26,12 +26,14 @@ def spec() -> dict:
 class TestLaunchYaml:
     def test_the_launch_bindings_present(self, spec):
         keys = [b["key"] for b in spec["bindings"]]
-        assert len(keys) == 11
+        assert len(keys) == 16
         for expected in (
             "high-rocks-wild-swim", "dodge-park-wild-swim", "oxbow-park-wild-swim",
             "tamanawas-falls-view", "elowah-falls-view", "latourell-falls-view",
             "wahclella-falls-view", "haystack-rock-tidepool",
             "trillium-lake-snowshoe", "dog-mountain-wildflower", "larch-mountain-stargaze",
+            "mciver-park-fish", "hood-river-event-site-windsurf", "scappoose-bay-paddle",
+            "coon-point-birdwatch", "zigzag-chanterelle-forage",
         ):
             assert expected in keys
 

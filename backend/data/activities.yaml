@@ -13,6 +13,7 @@ activities:
   - {id: trail_run,       display_name: Trail run,        hazard_class: false}
   - {id: paddle,          display_name: Paddle,           hazard_class: false}
   - {id: kayak,           display_name: Kayak,            hazard_class: false}
+  - {id: windsurf,        display_name: Windsurf,         hazard_class: false}
   - {id: fish,            display_name: Fish,             hazard_class: false}
   - {id: stargaze,        display_name: Stargaze,         hazard_class: false}
   - {id: sunset_view,     display_name: Sunset view,      hazard_class: false}

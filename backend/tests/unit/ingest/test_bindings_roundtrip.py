@@ -35,11 +35,11 @@ class TestBindingsRoundTrip:
     def test_load_creates_the_launch_bindings(self, tx):
         before_aff = _count(tx, "SELECT count(*) FROM affordances")
         stats = bindings.load(tx)
-        assert stats["bindings"] == 11
-        assert stats["feeds"] == 14
-        assert stats["activities"] >= 25
+        assert stats["bindings"] == 16
+        assert stats["feeds"] == 19
+        assert stats["activities"] >= 26
         # one affordance per binding, whether its place pre-existed or not
-        assert _count(tx, "SELECT count(*) FROM affordances") - before_aff == 11
+        assert _count(tx, "SELECT count(*) FROM affordances") - before_aff == 16
         # every binding place resolves to exactly one canonical row
         for name in ("High Rocks", "Tamanawas Falls", "Haystack Rock", "Dog Mountain"):
             assert _count(tx, "SELECT count(*) FROM places WHERE name = :n", n=name) == 1

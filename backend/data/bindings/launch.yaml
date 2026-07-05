@@ -50,6 +50,25 @@ feeds:
     station_ref: "45.49,-122.29"
     parameter: air_temp_f
     unit: degF
+  # Wind rides the same Open-Meteo point fetch as the air temps (the
+  # adapter returns the point's sibling readings in one call) — the
+  # wind_speed_mph metric is the single code change behind the windsurf
+  # and paddle bindings below; everything else here is data.
+  - id: "open_meteo:45.71,-121.51:wind_speed_mph"
+    provider: open_meteo
+    station_ref: "45.71,-121.51"
+    parameter: wind_speed_mph
+    unit: mph
+  - id: "open_meteo:45.83,-122.84:wind_speed_mph"
+    provider: open_meteo
+    station_ref: "45.83,-122.84"
+    parameter: wind_speed_mph
+    unit: mph
+  - id: "open_meteo:45.83,-122.84:air_temp_f"
+    provider: open_meteo
+    station_ref: "45.83,-122.84"
+    parameter: air_temp_f
+    unit: degF
   - id: "nws:45.40,-121.57:precip_in"
     provider: nws
     station_ref: "45.40,-121.57"
@@ -70,6 +89,14 @@ feeds:
     station_ref: "45.63,-121.95"
     parameter: precip_in
     unit: in
+  # open_meteo: prefix rather than nws: — docs/01 §3 uses both for point
+  # feeds and the same adapter module serves either; readings emit under
+  # the row's own prefix.
+  - id: "open_meteo:45.34,-121.93:precip_in"
+    provider: open_meteo
+    station_ref: "45.34,-121.93"
+    parameter: precip_in
+    unit: in
   # Nearest CO-OPS predictions station to Cannon Beach with published
   # predictions is Garibaldi (9437540), ~35 km south on the open coast.
   # CAVEAT: timing/height offsets vs Haystack Rock are small on this
@@ -84,6 +111,11 @@ feeds:
   - id: "astro:45.88,-123.97:is_daylight"
     provider: astro
     station_ref: "45.88,-123.97"
+    parameter: is_daylight
+    unit: bool
+  - id: "astro:45.76,-122.80:is_daylight"
+    provider: astro
+    station_ref: "45.76,-122.80"
     parameter: is_daylight
     unit: bool
   - id: "snotel:mt_hood:swe_in"
@@ -399,3 +431,159 @@ bindings:
         is_gate: false
         multiplier: 2.0
         predicate: {months: [4, 5, 6]}
+
+  # ------------------------------------------------------------------
+  # Bank fishing — winter steelhead on the lower Clackamas. Same gauge
+  # as the High Rocks swim gate (14210000): one sensor, two activities,
+  # opposite seasons.
+  # ------------------------------------------------------------------
+  - key: mciver-park-fish
+    place: {name: Clackamas River — McIver Park bank access, kind: river_access, lat: 45.3021, lng: -122.3703}
+    activity: fish
+    affordance:
+      difficulty: 2
+      typical_duration: "4 hours"
+      dog_ok: true
+      kid_ok: true
+      base_quality: 0.7
+    windows:
+      # "In shape" band — initial hypothesis: fishable as the river drops
+      # back after rain (>= 900 cfs keeps fish moving with some color),
+      # blown out above ~2800. To be tightened by verification snapshots.
+      - wtype: hydrological
+        is_gate: false
+        multiplier: 1.8
+        predicate:
+          all:
+            - {feed: "usgs_nwis:14210000:00060", op: ">=", value: 900}
+            - {feed: "usgs_nwis:14210000:00060", op: "<=", value: 2800}
+      - wtype: seasonal
+        is_gate: false
+        multiplier: 1.3
+        predicate: {months: [12, 1, 2, 3]}
+
+  # ------------------------------------------------------------------
+  # Windsurf — Hood River Event Site, the Gorge's flagship launch. The
+  # live predicate is the INVERSE of the flat-water paddle below: same
+  # metric, opposite direction — wind is the product for one verb and
+  # the spoiler for the other.
+  # ------------------------------------------------------------------
+  - key: hood-river-event-site-windsurf
+    place: {name: Hood River Event Site, kind: launch_site, lat: 45.7115, lng: -121.5093}
+    activity: windsurf
+    affordance:
+      difficulty: 4
+      typical_duration: "3 hours"
+      dog_ok: false
+      kid_ok: false
+      base_quality: 0.85
+    windows:
+      # >= 18 mph is an initial hypothesis (a rideable Gorge westerly);
+      # to be tightened by verification.
+      - wtype: weather_triggered
+        is_gate: false
+        multiplier: 2.0
+        predicate:
+          {feed: "open_meteo:45.71,-121.51:wind_speed_mph", op: ">=", value: 18}
+      - wtype: seasonal
+        is_gate: false
+        multiplier: 1.3
+        predicate: {months: [4, 5, 6, 7, 8, 9]}
+
+  # ------------------------------------------------------------------
+  # Flat-water paddle — Scappoose Bay stays glassy when the Gorge blows.
+  # Calm + warm live window on the same wind metric the windsurf binding
+  # wants maxed out.
+  # ------------------------------------------------------------------
+  - key: scappoose-bay-paddle
+    place: {name: Scappoose Bay — marina put-in, kind: bay, lat: 45.8296, lng: -122.8360}
+    activity: paddle
+    affordance:
+      difficulty: 1
+      typical_duration: "2 hours"
+      dog_ok: true
+      kid_ok: true
+      base_quality: 0.75
+    windows:
+      # Initial hypotheses: <= 8 mph is the beginner-chop line, >= 55 °F
+      # the wetsuit-optional line; to be tightened by verification.
+      - wtype: weather_triggered
+        is_gate: false
+        multiplier: 1.8
+        predicate:
+          all:
+            - {feed: "open_meteo:45.83,-122.84:wind_speed_mph", op: "<=", value: 8}
+            - {feed: "open_meteo:45.83,-122.84:air_temp_f", op: ">=", value: 55}
+      - wtype: seasonal
+        is_gate: false
+        multiplier: 1.2
+        predicate: {months: [4, 5, 6, 7, 8, 9, 10]}
+
+  # ------------------------------------------------------------------
+  # Birdwatch — sandhill cranes stage on Sauvie Island Oct-Apr; Coon
+  # Point is the classic viewing dike. ODFW Sauvie Island Wildlife Area
+  # parking permit required.
+  # Plain GNIS name (no 'Sauvie Island —' prefix): 'Coon Point' scores
+  # 1.0 trigram similarity against the GNIS feature at these coords, so
+  # the skeleton loaders merge instead of duplicating (the prefixed form
+  # scored 0.44, under crosswalk's 0.45 floor).
+  # ------------------------------------------------------------------
+  - key: coon-point-birdwatch
+    place: {name: Coon Point, kind: wildlife_area, lat: 45.7623, lng: -122.8046}
+    activity: birdwatch
+    affordance:
+      difficulty: 1
+      typical_duration: "2 hours"
+      dog_ok: false
+      kid_ok: true
+      base_quality: 0.8
+    access_note:
+      kind: parking
+      lat: 45.7623
+      lng: -122.8046
+      notes: "ODFW Sauvie Island Wildlife Area parking permit required (daily at the island market, annual from ODFW)"
+    windows:
+      - wtype: seasonal
+        is_gate: false
+        multiplier: 1.6
+        predicate: {months: [10, 11, 12, 1, 2, 3, 4]}
+      # Daylight only — same astro pattern as the Haystack tidepool leaf
+      # (cranes fly out at dawn, back at dusk; the card is pointless at night).
+      - wtype: astronomical
+        is_gate: false
+        multiplier: 1.2
+        predicate:
+          {feed: "astro:45.76,-122.80:is_daylight", op: "=", value: 1}
+
+  # ------------------------------------------------------------------
+  # Forage — fall chanterelles after the first soaking rains. The place
+  # is deliberately forest-scale, NOT a patch pin (dispersal posture,
+  # docs/02 §5 — the graph never publishes anyone's spot). Free-use
+  # permit covers personal-quantity mushrooms in Mt Hood NF.
+  # ------------------------------------------------------------------
+  - key: zigzag-chanterelle-forage
+    place: {name: Mt Hood NF — ZigZag chanterelle woods (forest-scale), kind: forest, lat: 45.3450, lng: -121.9330}
+    activity: forage
+    affordance:
+      difficulty: 2
+      typical_duration: "3 hours"
+      dog_ok: true
+      kid_ok: true
+      base_quality: 0.7
+    windows:
+      # Same 72-h accumulation shape as the Gorge waterfall bindings;
+      # 0.5 in is an initial hypothesis (enough rain to wake the flush
+      # mid-season), to be tightened by verification.
+      - wtype: weather_triggered
+        is_gate: false
+        multiplier: 1.8
+        predicate:
+          feed: "open_meteo:45.34,-121.93:precip_in"
+          agg: sum
+          window_h: 72
+          op: ">="
+          value: 0.5
+      - wtype: seasonal
+        is_gate: false
+        multiplier: 1.4
+        predicate: {months: [9, 10, 11]}
