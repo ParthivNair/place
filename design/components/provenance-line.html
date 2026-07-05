@@ -1,0 +1,341 @@
+<!-- @dsCard group="Components" name="Provenance line" subtitle="Live, hydrological, static-claim, fading, degraded" viewport="400x1080" -->
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Place · Provenance line</title>
+<style>
+/* ============================================================
+   Place — design tokens (source of truth)
+   Direction: "field guide meets instrument panel."
+   Derived from docs/ canon:
+   - docs/02 §3: card anatomy; nothing decorative
+   - docs/00 §1: the provenance line is the brand → sensor data
+     renders in monospace, tabular figures, always
+   - docs/07 §2 P5 + §5: readable type / plain language is a
+     launch commitment, not a Phase-6 retrofit
+   - docs/02 §5: hazard framing, dispersal, no hero pins
+   - docs/04 §9: zero webfonts — system stacks only
+   Every preview in this directory inlines these tokens verbatim.
+   Edit here first; re-sync changed components after.
+   ============================================================ */
+
+:root {
+  /* ---- Paper & ink (field-guide page) ---- */
+  --paper:      #FBFAF6;  /* app background — warm off-white */
+  --card:       #FFFFFF;  /* card surface */
+  --ink:        #1C2B25;  /* primary text — fir-shadow near-black */
+  --ink-soft:   #47564E;  /* secondary text */
+  --ink-faint:  #7C8880;  /* tertiary/meta — 4.5:1 on --card at 13px+ */
+  --hairline:   #E5E2D8;  /* borders, dividers */
+  --recess:     #F2F0E9;  /* inset wells, photo placeholders */
+
+  /* ---- Brand ---- */
+  --forest:       #29583F;  /* primary actions — Douglas fir */
+  --forest-deep:  #1D4230;  /* pressed / hover */
+  --forest-tint:  #E9F0EB;  /* selected chips, quiet emphasis */
+
+  /* ---- Condition states (semantic — the core system) ----
+     live:     window firing; card has a live, provenance-backed reason
+     fading:   window closing, or reading older than 2× feed cadence
+               (docs/04 §4 rule 1: "as of <time>", never stale-as-fresh)
+     unknown:  feed down / no live window → seasonal prior only
+     hazard:   hazard-class affordances ONLY (cliff-jump, wild-swim,
+               snow travel), always with assumption-of-risk framing
+     verified: ground truth — confirm verdicts, "verified N days ago" */
+  --live:          #0E6E78;  /* river teal */
+  --live-tint:     #E2F1F0;
+  --fading:        #8F6400;  /* amber, ink-dark for text use */
+  --fading-tint:   #FAF1DC;
+  --unknown:       #66736B;  /* basalt gray */
+  --unknown-tint:  #EDEFEA;
+  --hazard:        #A03D2C;  /* rust — serious, not alarmist */
+  --hazard-tint:   #F8EAE5;
+  --verified:      #2F6E44;  /* fir green */
+  --verified-tint: #E7F1E9;
+
+  /* ---- Type ----
+     Zero webfonts. UI text: system stack. Sensor data: monospace,
+     tabular — every number the evaluator produced wears --font-data. */
+  --font-ui:   -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  --font-data: ui-monospace, "SF Mono", SFMono-Regular, Menlo,
+               Consolas, monospace;
+
+  --text-place:  20px;   /* place name — uppercase, tracked */
+  --text-lg:     18px;   /* section heads, push title */
+  --text-body:   16px;   /* body floor — P5 readability commitment */
+  --text-sub:    15px;   /* affordance strip, provenance body */
+  --text-meta:   13px;   /* hard minimum anywhere in the product */
+  --track-place: 0.05em; /* letterspacing for uppercase place names */
+  --leading:     1.5;
+
+  /* ---- Space & shape (4px grid) ---- */
+  --s1: 4px;  --s2: 8px;  --s3: 12px;  --s4: 16px;
+  --s5: 20px; --s6: 24px; --s8: 32px;
+  --radius-card:  14px;
+  --radius-chip:  999px;  /* chips, badges, filter pills */
+  --radius-ctl:   10px;   /* buttons, inputs */
+  --touch:        44px;   /* min target — one-tap verdicts must be easy */
+  --card-w:       368px;  /* card width at 400px mobile viewport */
+  --border:       1px solid var(--hairline);
+  --shadow-card:  0 1px 2px rgba(28, 43, 37, 0.06),
+                  0 4px 12px rgba(28, 43, 37, 0.05);
+}
+
+/* ---- Base ---- */
+.place-root {
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Sensor data signature: anything the evaluator measured.
+   980 cfs · 1.6 in / 72 h · −1.4 ft tide · 6:42 pm — always this class. */
+.data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.94em;
+  letter-spacing: -0.01em;
+}
+
+/* Place name: quiet all-caps, per the docs/02 §3 card mock */
+.place-name {
+  font-size: var(--text-place);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--track-place);
+  line-height: 1.25;
+}
+
+/* ============================================================
+   Component: provenance line
+   The live reason under every card — load-bearing, not
+   decoration (docs/00 §1). Anatomy: leading state glyph,
+   bold lead phrase in the state color, then detail line(s):
+   source + reading (.data) + freshness + named verifier credit.
+   Rules: docs/02 §2 (no card ships a bare rank),
+   docs/04 §4 (never stale-as-fresh; degrade to priors).
+   ============================================================ */
+
+body {
+  margin: 0;
+  padding: var(--s4);
+}
+
+.specimen {
+  max-width: var(--card-w);
+  margin: 0 auto;
+}
+
+.specimen-head {
+  padding: var(--s1) var(--s1) var(--s4);
+}
+
+.specimen-head h1 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.specimen-head p {
+  margin: var(--s1) 0 0;
+  font-size: var(--text-sub);
+  line-height: var(--leading);
+  color: var(--ink-soft);
+}
+
+/* One variant = card-styled container + meta caption below */
+.variant {
+  margin: 0 0 var(--s5);
+}
+
+.variant-card {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s4);
+}
+
+.variant figcaption {
+  margin: var(--s2) var(--s1) 0;
+  font-size: var(--text-meta);
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+
+/* ---- The provenance line itself ---- */
+.prov {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  column-gap: var(--s1);
+}
+
+.prov.no-glyph {
+  grid-template-columns: 1fr;  /* static claim: the condition
+                                  system is silent — no glyph */
+}
+
+.prov-glyph {
+  font-size: var(--text-sub);
+  line-height: 1.35;
+  padding-top: 1px;
+  text-align: left;
+}
+
+.prov-lead {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+}
+
+.prov-detail {
+  margin: var(--s1) 0 0;
+  font-size: var(--text-sub);
+  line-height: var(--leading);
+  color: var(--ink-soft);
+}
+
+/* State colorways — glyph + lead only; detail stays ink-soft */
+.prov.is-live .prov-glyph,
+.prov.is-live .prov-lead     { color: var(--live); }
+.prov.is-fading .prov-glyph,
+.prov.is-fading .prov-lead   { color: var(--fading); }
+.prov.is-unknown .prov-glyph,
+.prov.is-unknown .prov-lead  { color: var(--unknown); }
+.prov.is-static .prov-lead   { color: var(--ink); }
+
+/* Named verifier credit: quiet emphasis in forest, 600 —
+   recognition, never points (docs/02 §3, docs/00 §6) */
+.verifier {
+  color: var(--forest);
+  font-weight: 600;
+}
+
+/* Bottom note documenting the two signature styles */
+.specimen-note {
+  margin: var(--s2) var(--s1) 0;
+  padding-top: var(--s3);
+  border-top: var(--border);
+  font-size: var(--text-meta);
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+</style>
+<body class="place-root">
+  <main class="specimen">
+
+    <header class="specimen-head">
+      <h1>Provenance line</h1>
+      <p>Every card carries its live reason with source, freshness,
+         and credit — no card ships a bare rank. Glyph rule (single
+         source): &#9889; weather-triggered live reason ·
+         &#9679; other live (hydro/tidal/seasonal/ephemeris) ·
+         &#9675; unknown.</p>
+    </header>
+
+    <figure class="variant">
+      <div class="variant-card">
+        <div class="prov is-live">
+          <span class="prov-glyph" aria-hidden="true">&#9889;</span>
+          <div>
+            <p class="prov-lead">Flowing hard right now</p>
+            <p class="prov-detail"><span class="data">1.6&nbsp;in</span> rain
+               in the last <span class="data">72&nbsp;h</span> (NWS) — best
+               window next <span class="data">3&ndash;4&nbsp;days</span> ·
+               verified Sun by <span class="verifier">@gorge_amy</span></p>
+          </div>
+        </div>
+      </div>
+      <figcaption>Live · weather-triggered — Tamanawas Falls card.
+        &#9889; glyph, lead in river teal, reading + window in .data,
+        named verifier credit.</figcaption>
+    </figure>
+
+    <figure class="variant">
+      <div class="variant-card">
+        <div class="prov is-live">
+          <span class="prov-glyph" aria-hidden="true">&#9679;</span>
+          <div>
+            <p class="prov-lead">Swimmable now</p>
+            <p class="prov-detail">Clackamas @ Estacada
+               (<span class="data">14210000</span>) at
+               <span class="data">980&nbsp;cfs</span>, threshold
+               <span class="data">&lt;1,200</span> · verified 6 days ago at
+               <span class="data">1,010&nbsp;cfs</span> · 3 sources</p>
+          </div>
+        </div>
+      </div>
+      <figcaption>Live · hydrological — High Rocks card.
+        &#9679; glyph for non-weather live windows; gauge, reading, and
+        threshold all wear .data.</figcaption>
+    </figure>
+
+    <figure class="variant">
+      <div class="variant-card">
+        <div class="prov is-static no-glyph">
+          <div>
+            <p class="prov-lead">Quiet ridgeline walk, shaded by noon</p>
+            <p class="prov-detail">From trip reports ·
+               last verified May 14 · 2 sources</p>
+          </div>
+        </div>
+      </div>
+      <figcaption>Static claim — Springville Trailhead card, no live
+        window. Neutral inks only, no glyph, no teal: claim provenance
+        plus last-verified date.</figcaption>
+    </figure>
+
+    <figure class="variant">
+      <div class="variant-card">
+        <div class="prov is-fading">
+          <span class="prov-glyph" aria-hidden="true">&#9679;</span>
+          <div>
+            <p class="prov-lead">Swimmable &mdash; as of
+               <span class="data">6:40&nbsp;am</span></p>
+            <p class="prov-detail">Clackamas @ Estacada
+               (<span class="data">14210000</span>) at
+               <span class="data">980&nbsp;cfs</span>, reading
+               <span class="data">4&nbsp;h</span> old (older than
+               2&times; feed cadence)</p>
+          </div>
+        </div>
+      </div>
+      <figcaption>Fading &mdash; stale reading, rendered as-of, never
+        implicitly current (docs/04 &sect;4 rule 1). Amber colorway;
+        &#9679; glyph &mdash; the reading is still hydrological, only old.</figcaption>
+    </figure>
+
+    <figure class="variant">
+      <div class="variant-card">
+        <div class="prov is-unknown">
+          <span class="prov-glyph" aria-hidden="true">&#9675;</span>
+          <div>
+            <p class="prov-lead">Live flow unavailable</p>
+            <p class="prov-detail">Showing seasonal prior — usually
+               swimmable in July · as of
+               <span class="data">6:15&nbsp;am</span></p>
+          </div>
+        </div>
+      </div>
+      <figcaption>Degraded — gauge feed down (docs/04 §4): unknown basalt,
+        hollow &#9675; glyph (signal absent), seasonal prior fallback, honest
+        &ldquo;as of&rdquo; timestamp. Never stale shown as fresh.</figcaption>
+    </figure>
+
+    <p class="specimen-note">Sensor readings always monospace tabular
+       (.data). <span class="verifier">@gorge_amy</span> renders in
+       forest 600 — provenance credit is the only recognition in the
+       product: no stars, no badges, no points.</p>
+
+  </main>
+</body>
+</html>

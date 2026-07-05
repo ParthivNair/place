@@ -1,0 +1,315 @@
+<!-- @dsCard group="Foundations" name="Typography" subtitle="System stack, data-mono signature, P5-readable scale" viewport="760x900" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Typography — Place foundations</title>
+<style>
+/* ============================================================
+   Place — design tokens (source of truth)
+   Direction: "field guide meets instrument panel."
+   Derived from docs/ canon:
+   - docs/02 §3: card anatomy; nothing decorative
+   - docs/00 §1: the provenance line is the brand → sensor data
+     renders in monospace, tabular figures, always
+   - docs/07 §2 P5 + §5: readable type / plain language is a
+     launch commitment, not a Phase-6 retrofit
+   - docs/02 §5: hazard framing, dispersal, no hero pins
+   - docs/04 §9: zero webfonts — system stacks only
+   Every preview in this directory inlines these tokens verbatim.
+   Edit here first; re-sync changed components after.
+   ============================================================ */
+
+:root {
+  /* ---- Paper & ink (field-guide page) ---- */
+  --paper:      #FBFAF6;  /* app background — warm off-white */
+  --card:       #FFFFFF;  /* card surface */
+  --ink:        #1C2B25;  /* primary text — fir-shadow near-black */
+  --ink-soft:   #47564E;  /* secondary text */
+  --ink-faint:  #7C8880;  /* tertiary/meta — 4.5:1 on --card at 13px+ */
+  --hairline:   #E5E2D8;  /* borders, dividers */
+  --recess:     #F2F0E9;  /* inset wells, photo placeholders */
+
+  /* ---- Brand ---- */
+  --forest:       #29583F;  /* primary actions — Douglas fir */
+  --forest-deep:  #1D4230;  /* pressed / hover */
+  --forest-tint:  #E9F0EB;  /* selected chips, quiet emphasis */
+
+  /* ---- Condition states (semantic — the core system) ----
+     live:     window firing; card has a live, provenance-backed reason
+     fading:   window closing, or reading older than 2× feed cadence
+               (docs/04 §4 rule 1: "as of <time>", never stale-as-fresh)
+     unknown:  feed down / no live window → seasonal prior only
+     hazard:   hazard-class affordances ONLY (cliff-jump, wild-swim,
+               snow travel), always with assumption-of-risk framing
+     verified: ground truth — confirm verdicts, "verified N days ago" */
+  --live:          #0E6E78;  /* river teal */
+  --live-tint:     #E2F1F0;
+  --fading:        #8F6400;  /* amber, ink-dark for text use */
+  --fading-tint:   #FAF1DC;
+  --unknown:       #66736B;  /* basalt gray */
+  --unknown-tint:  #EDEFEA;
+  --hazard:        #A03D2C;  /* rust — serious, not alarmist */
+  --hazard-tint:   #F8EAE5;
+  --verified:      #2F6E44;  /* fir green */
+  --verified-tint: #E7F1E9;
+
+  /* ---- Type ----
+     Zero webfonts. UI text: system stack. Sensor data: monospace,
+     tabular — every number the evaluator produced wears --font-data. */
+  --font-ui:   -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  --font-data: ui-monospace, "SF Mono", SFMono-Regular, Menlo,
+               Consolas, monospace;
+
+  --text-place:  20px;   /* place name — uppercase, tracked */
+  --text-lg:     18px;   /* section heads, push title */
+  --text-body:   16px;   /* body floor — P5 readability commitment */
+  --text-sub:    15px;   /* affordance strip, provenance body */
+  --text-meta:   13px;   /* hard minimum anywhere in the product */
+  --track-place: 0.05em; /* letterspacing for uppercase place names */
+  --leading:     1.5;
+
+  /* ---- Space & shape (4px grid) ---- */
+  --s1: 4px;  --s2: 8px;  --s3: 12px;  --s4: 16px;
+  --s5: 20px; --s6: 24px; --s8: 32px;
+  --radius-card:  14px;
+  --radius-chip:  999px;  /* chips, badges, filter pills */
+  --radius-ctl:   10px;   /* buttons, inputs */
+  --touch:        44px;   /* min target — one-tap verdicts must be easy */
+  --card-w:       368px;  /* card width at 400px mobile viewport */
+  --border:       1px solid var(--hairline);
+  --shadow-card:  0 1px 2px rgba(28, 43, 37, 0.06),
+                  0 4px 12px rgba(28, 43, 37, 0.05);
+}
+
+/* ---- Base ---- */
+.place-root {
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Sensor data signature: anything the evaluator measured.
+   980 cfs · 1.6 in / 72 h · −1.4 ft tide · 6:42 pm — always this class. */
+.data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.94em;
+  letter-spacing: -0.01em;
+}
+
+/* Place name: quiet all-caps, per the docs/02 §3 card mock */
+.place-name {
+  font-size: var(--text-place);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--track-place);
+  line-height: 1.25;
+}
+
+/* ============================================================
+   Typography specimen — component styles
+   ============================================================ */
+
+body { margin: 0; }
+
+.wrap {
+  max-width: 728px;
+  margin: 0 auto;
+  padding: var(--s6) var(--s4) var(--s8);
+}
+
+.ds-caption {
+  font-size: var(--text-meta);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+  margin: 0 0 var(--s2) var(--s1);
+}
+
+.spec-card {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s2) var(--s6);
+  margin-bottom: var(--s6);
+}
+
+/* ---- 1 · the scale ---- */
+.scale-row {
+  display: grid;
+  grid-template-columns: 176px 1fr;
+  gap: var(--s4);
+  align-items: baseline;
+  padding: var(--s4) 0;
+  border-bottom: var(--border);
+}
+.scale-row:last-child { border-bottom: none; }
+
+.tok {
+  font-family: var(--font-data);
+  font-size: var(--text-meta);
+  line-height: 1.45;
+  color: var(--ink-soft);
+  letter-spacing: -0.01em;
+}
+.tok small {
+  display: block;
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+
+.s-lg   { font-size: var(--text-lg);   font-weight: 600; line-height: 1.35; }
+.s-body { font-size: var(--text-body); }
+.s-sub  { font-size: var(--text-sub);  color: var(--ink-soft); }
+.s-meta { font-size: var(--text-meta); color: var(--ink-faint); }
+
+.note {
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+  margin-top: var(--s1);
+}
+
+/* ---- 2 · the signature ---- */
+.sig-card { padding: var(--s5) var(--s6); }
+
+.prov {
+  font-size: var(--text-body);
+  line-height: 1.55;
+  margin: 0;
+}
+.prov .bolt { color: var(--live); }
+.prov .verifier { color: var(--forest); font-weight: 600; }
+.prov-block { padding: var(--s3) 0 var(--s4); border-bottom: var(--border); }
+.prov-block + .prov-block { padding-top: var(--s4); }
+
+.rule-plain {
+  font-size: var(--text-body);
+  margin: var(--s4) 0 0;
+}
+
+.spec-strip {
+  background: var(--recess);
+  border-radius: var(--radius-ctl);
+  padding: var(--s3) var(--s4);
+  margin-top: var(--s4);
+  font-family: var(--font-data);
+  font-size: var(--text-meta);
+  line-height: 1.6;
+  color: var(--ink-soft);
+  letter-spacing: -0.01em;
+  overflow-x: auto;
+}
+.spec-strip b { font-weight: 600; color: var(--ink); }
+
+/* ---- 3 · zero webfonts ---- */
+.stack-list {
+  background: var(--recess);
+  border-radius: var(--radius-ctl);
+  padding: var(--s3) var(--s4);
+  margin-top: var(--s3);
+}
+.stack-row {
+  font-family: var(--font-data);
+  font-size: var(--text-meta);
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+  color: var(--ink-faint);
+  overflow-wrap: break-word;
+}
+.stack-row + .stack-row { margin-top: var(--s2); }
+.stack-row b { font-weight: 600; color: var(--ink-soft); }
+</style>
+</head>
+<body class="place-root">
+<div class="wrap">
+
+  <!-- 1 · THE SCALE -->
+  <p class="ds-caption">1 · The scale — five sizes, nothing smaller</p>
+  <section class="spec-card">
+
+    <div class="scale-row">
+      <div class="tok">--text-place<small>20 / 700 · uppercase · tracked 0.05em</small></div>
+      <div>
+        <div class="place-name">Tamanawas Falls</div>
+        <p class="note">Place names only — quiet all-caps, per the docs/02 §3 card mock.</p>
+      </div>
+    </div>
+
+    <div class="scale-row">
+      <div class="tok">--text-lg<small>18 / 600</small></div>
+      <div>
+        <div class="s-lg">Balsamroot is peaking on Dog Mountain</div>
+        <p class="note">Section heads and the Sunday-push title.</p>
+      </div>
+    </div>
+
+    <div class="scale-row">
+      <div class="tok">--text-body<small>16 / 400 — the floor</small></div>
+      <div>
+        <p class="s-body" style="margin:0">Cold Spring Creek drops in two tiers over a basalt lip; the last quarter mile crosses a boulder field, icy into spring.</p>
+        <p class="note">The floor. No body text below 16 px — a launch commitment to the 55+ weekday-walker cohort (docs/07 P5), not a Phase-6 retrofit.</p>
+      </div>
+    </div>
+
+    <div class="scale-row">
+      <div class="tok">--text-sub<small>15 / 400</small></div>
+      <div>
+        <div class="s-sub">waterfall-view · moderate · <span class="data">~3 h</span> round trip · dogs ok (leash)</div>
+        <p class="note">Affordance strip, provenance body.</p>
+      </div>
+    </div>
+
+    <div class="scale-row">
+      <div class="tok">--text-meta<small>13 / 400 — hard minimum</small></div>
+      <div>
+        <div class="s-meta">Northwest Forest Pass required · pack it out</div>
+        <p class="note">Safety and stewardship line, captions, timestamps. Nothing in the product renders smaller.</p>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- 2 · THE SIGNATURE -->
+  <p class="ds-caption">2 · The signature — UI font and <span style="font-family:var(--font-data)">.data</span> interleaved</p>
+  <section class="spec-card sig-card">
+
+    <div class="prov-block" style="padding-top:0">
+      <p class="prov"><span class="bolt">⚡</span> Flowing hard right now — <span class="data">1.6 in</span> rain in the last <span class="data">72 h</span> (NWS) · verified Sun by <span class="verifier">@gorge_amy</span></p>
+      <p class="note">Experience card · the provenance line (docs/02 §3). Verifier credit — forest 600, the only recognition in the product.</p>
+    </div>
+
+    <div class="prov-block" style="border-bottom:none; padding-bottom:0">
+      <p class="prov">Clackamas @ Estacada (<span class="data">14210000</span>) at <span class="data">980 cfs</span>, threshold <span class="data">&lt;1,200</span> — verified Jun 27 at <span class="data">1,010 cfs</span></p>
+      <p class="note">Place page · condition state for the High Rocks wild-swim affordance.</p>
+    </div>
+
+    <p class="rule-plain">The rule, plainly: every number the evaluator measured or computed — cfs, inches of rain, tide feet, temperatures, times, drive minutes — renders in monospace tabular figures. Claim words like <em>moderate</em> stay in the UI font. Data looks like data, because the provenance line is the brand (docs/00 §1).</p>
+
+    <div class="spec-strip"><b>.data</b> → font-family: var(--font-data) · font-variant-numeric: tabular-nums · font-size: 0.94em · letter-spacing: −0.01em</div>
+
+  </section>
+
+  <!-- 3 · ZERO WEBFONTS -->
+  <p class="ds-caption">3 · Zero webfonts — the stack is the system's</p>
+  <section class="spec-card sig-card">
+
+    <p class="rule-plain" style="margin-top:0">No font files ship. The seasonal tool has to load in about <span class="data">2 s</span>, no login, on a trailhead connection (docs/04 §9) — so UI text uses the platform's system stack and data uses its UI monospace. This specimen is the shipped rendering.</p>
+
+    <div class="stack-list">
+      <div class="stack-row"><b>--font-ui:</b> -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif</div>
+      <div class="stack-row"><b>--font-data:</b> ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace</div>
+    </div>
+
+  </section>
+
+</div>
+</body>
+</html>

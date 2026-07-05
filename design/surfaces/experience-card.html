@@ -1,0 +1,444 @@
+<!-- @dsCard group="Surfaces" name="Experience card" subtitle="Condition-magic / everyday / hazard-gated" viewport="400x1720" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Place — Experience card</title>
+<style>
+/* ============================================================
+   Place — design tokens (source of truth)
+   Direction: "field guide meets instrument panel."
+   Derived from docs/ canon:
+   - docs/02 §3: card anatomy; nothing decorative
+   - docs/00 §1: the provenance line is the brand → sensor data
+     renders in monospace, tabular figures, always
+   - docs/07 §2 P5 + §5: readable type / plain language is a
+     launch commitment, not a Phase-6 retrofit
+   - docs/02 §5: hazard framing, dispersal, no hero pins
+   - docs/04 §9: zero webfonts — system stacks only
+   Every preview in this directory inlines these tokens verbatim.
+   Edit here first; re-sync changed components after.
+   ============================================================ */
+
+:root {
+  /* ---- Paper & ink (field-guide page) ---- */
+  --paper:      #FBFAF6;  /* app background — warm off-white */
+  --card:       #FFFFFF;  /* card surface */
+  --ink:        #1C2B25;  /* primary text — fir-shadow near-black */
+  --ink-soft:   #47564E;  /* secondary text */
+  --ink-faint:  #7C8880;  /* tertiary/meta — 4.5:1 on --card at 13px+ */
+  --hairline:   #E5E2D8;  /* borders, dividers */
+  --recess:     #F2F0E9;  /* inset wells, photo placeholders */
+
+  /* ---- Brand ---- */
+  --forest:       #29583F;  /* primary actions — Douglas fir */
+  --forest-deep:  #1D4230;  /* pressed / hover */
+  --forest-tint:  #E9F0EB;  /* selected chips, quiet emphasis */
+
+  /* ---- Condition states (semantic — the core system) ----
+     live:     window firing; card has a live, provenance-backed reason
+     fading:   window closing, or reading older than 2× feed cadence
+               (docs/04 §4 rule 1: "as of <time>", never stale-as-fresh)
+     unknown:  feed down / no live window → seasonal prior only
+     hazard:   hazard-class affordances ONLY (cliff-jump, wild-swim,
+               snow travel), always with assumption-of-risk framing
+     verified: ground truth — confirm verdicts, "verified N days ago" */
+  --live:          #0E6E78;  /* river teal */
+  --live-tint:     #E2F1F0;
+  --fading:        #8F6400;  /* amber, ink-dark for text use */
+  --fading-tint:   #FAF1DC;
+  --unknown:       #66736B;  /* basalt gray */
+  --unknown-tint:  #EDEFEA;
+  --hazard:        #A03D2C;  /* rust — serious, not alarmist */
+  --hazard-tint:   #F8EAE5;
+  --verified:      #2F6E44;  /* fir green */
+  --verified-tint: #E7F1E9;
+
+  /* ---- Type ----
+     Zero webfonts. UI text: system stack. Sensor data: monospace,
+     tabular — every number the evaluator produced wears --font-data. */
+  --font-ui:   -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  --font-data: ui-monospace, "SF Mono", SFMono-Regular, Menlo,
+               Consolas, monospace;
+
+  --text-place:  20px;   /* place name — uppercase, tracked */
+  --text-lg:     18px;   /* section heads, push title */
+  --text-body:   16px;   /* body floor — P5 readability commitment */
+  --text-sub:    15px;   /* affordance strip, provenance body */
+  --text-meta:   13px;   /* hard minimum anywhere in the product */
+  --track-place: 0.05em; /* letterspacing for uppercase place names */
+  --leading:     1.5;
+
+  /* ---- Space & shape (4px grid) ---- */
+  --s1: 4px;  --s2: 8px;  --s3: 12px;  --s4: 16px;
+  --s5: 20px; --s6: 24px; --s8: 32px;
+  --radius-card:  14px;
+  --radius-chip:  999px;  /* chips, badges, filter pills */
+  --radius-ctl:   10px;   /* buttons, inputs */
+  --touch:        44px;   /* min target — one-tap verdicts must be easy */
+  --card-w:       368px;  /* card width at 400px mobile viewport */
+  --border:       1px solid var(--hairline);
+  --shadow-card:  0 1px 2px rgba(28, 43, 37, 0.06),
+                  0 4px 12px rgba(28, 43, 37, 0.05);
+}
+
+/* ---- Base ---- */
+.place-root {
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Sensor data signature: anything the evaluator measured.
+   980 cfs · 1.6 in / 72 h · −1.4 ft tide · 6:42 pm — always this class. */
+.data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.94em;
+  letter-spacing: -0.01em;
+}
+
+/* Place name: quiet all-caps, per the docs/02 §3 card mock */
+.place-name {
+  font-size: var(--text-place);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--track-place);
+  line-height: 1.25;
+}
+
+/* ============================================================
+   Experience card — the atomic unit of the feed (docs/02 §3).
+   Every element feeds the graph, exercises it, or defends it.
+   ============================================================ */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+button { font: inherit; cursor: pointer; }
+
+body { padding: var(--s4); }
+
+.stage {
+  width: var(--card-w);
+  max-width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s6);
+}
+
+.spec-caption {
+  font-size: var(--text-meta);
+  line-height: 1.4;
+  color: var(--ink-faint);
+  margin-bottom: var(--s2);
+}
+
+/* ---- Card shell ---- */
+.xcard {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+/* ---- Hero photo placeholder + save (idle ♡; filled ♥ = saved, forest) ---- */
+.photo {
+  position: relative;
+  height: 148px;
+  background: var(--recess);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.photo-label {
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+.save {
+  position: absolute;
+  top: var(--s2);
+  right: var(--s2);
+  min-height: var(--touch);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 var(--s4);
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-chip);
+  color: var(--ink-soft);
+  font-size: var(--text-sub);
+  font-weight: 600;
+}
+.save .glyph { font-size: 17px; line-height: 1; }
+
+/* ---- Body ---- */
+.xbody { padding: var(--s4); }
+
+/* Identity: place + access context + drive time */
+.identity-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+.drive {
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+/* .data is 0.94em; inside a 13px meta line that would dip below the
+   13px hard floor (--text-meta) — pin it back to the floor. */
+.drive .data { font-size: var(--text-meta); }
+.context {
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+
+/* Provenance block — the brand (docs/00 §1) */
+.prov {
+  display: flex;
+  gap: var(--s2);
+  margin-top: var(--s3);
+}
+.prov-glyph {
+  flex: none;
+  width: 22px;
+  text-align: center;
+  font-size: var(--text-sub);
+  line-height: var(--leading);
+}
+.prov-lead-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+.prov-lead {
+  font-size: var(--text-body);
+  font-weight: 700;
+}
+/* State colorways — glyph + lead only; detail stays ink-soft */
+.prov.is-live .prov-glyph,
+.prov.is-live .prov-lead   { color: var(--live); }
+.prov.is-unknown .prov-glyph,
+.prov.is-unknown .prov-lead { color: var(--unknown); }
+.prov.is-static .prov-lead  { color: var(--ink); }
+.prov-detail {
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+.verifier { color: var(--forest); font-weight: 600; }
+
+/* Hazard-gated chip — only beside hazard-class affordances */
+.chip-hazard {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 10px;
+  border-radius: var(--radius-chip);
+  background: var(--hazard-tint);
+  color: var(--hazard);
+  font-size: var(--text-meta);
+  font-weight: 600;
+}
+
+/* Affordance strip — straight from the reified Affordance node */
+.strip {
+  margin-top: var(--s3);
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+}
+.strip .verb { color: var(--ink); font-weight: 600; }
+.strip .sep { color: var(--ink-soft); }
+
+/* Crowd prior — annotates, never claims (docs/07 §1) */
+.prior {
+  margin-top: var(--s1);
+  font-size: var(--text-meta);
+  font-style: italic;
+  color: var(--ink-faint);
+}
+
+/* Assumption of risk — required framing for hazard class (docs/02 §5.1) */
+.risk {
+  margin-top: var(--s3);
+  padding: var(--s3);
+  background: var(--hazard-tint);
+  border-radius: var(--radius-ctl);
+  color: var(--hazard);
+  font-size: var(--text-sub);
+  line-height: 1.45;
+}
+
+/* Safety / stewardship — on every card, never behind a tap (docs/02 §5.4) */
+.safety {
+  margin-top: var(--s3);
+  padding-top: var(--s3);
+  border-top: var(--border);
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+.safety .permit { color: var(--ink-soft); font-weight: 600; }
+
+/* Exactly two actions — "I'm going" is the only conversion */
+.actions {
+  display: flex;
+  gap: var(--s3);
+  margin-top: var(--s3);
+}
+.btn {
+  flex: 1;
+  min-height: 48px;
+  border-radius: var(--radius-ctl);
+  font-size: var(--text-body);
+  font-weight: 600;
+  padding: 0 var(--s3);
+}
+.btn-primary {
+  background: var(--forest);
+  border: 1px solid var(--forest);
+  color: var(--card);
+}
+/* Tertiary: quiet text button — never an outlined secondary */
+.btn-tertiary {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--ink-soft);
+}
+</style>
+</head>
+<body class="place-root">
+<div class="stage">
+
+  <!-- ================= CARD A — condition-magic ================= -->
+  <section>
+    <p class="spec-caption">A · Condition-magic — window firing, ranks on top of the feed (docs/02 §3 mock)</p>
+    <article class="xcard">
+      <div class="photo">
+        <span class="photo-label">photo</span>
+        <button class="save"><span class="glyph">♡</span> save</button>
+      </div>
+      <div class="xbody">
+        <div class="identity-row">
+          <h2 class="place-name">Tamanawas Falls</h2>
+          <span class="drive"><span class="data">41 min</span> drive</span>
+        </div>
+        <p class="context">Cold Spring Creek, Mt. Hood NF</p>
+
+        <div class="prov is-live">
+          <span class="prov-glyph">⚡</span>
+          <div>
+            <p class="prov-lead">Flowing hard right now</p>
+            <p class="prov-detail"><span class="data">1.6 in</span> rain in the last <span class="data">72 h</span> (NWS) — best window next <span class="data">3–4 days</span> · verified Sun by <span class="verifier">@gorge_amy</span></p>
+          </div>
+        </div>
+
+        <div class="strip">
+          <span class="verb">waterfall-view</span> <span class="sep">·</span> moderate <span class="sep">·</span> <span class="data">~3 h round trip</span><br>
+          dogs ok (leash) <span class="sep">·</span> kids ok <span class="sep">·</span> icefall hazard in winter
+        </div>
+
+        <p class="safety"><span class="permit">Northwest Forest Pass required</span> · pack it out</p>
+
+        <div class="actions">
+          <button class="btn btn-primary">I&rsquo;m going</button>
+          <button class="btn btn-tertiary">more conditions &rarr;</button>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ================= CARD B — everyday condition-lite ================= -->
+  <section>
+    <p class="spec-caption">B · Everyday condition-lite — the retention layer (docs/07 §1); prior annotates, doesn&rsquo;t claim</p>
+    <article class="xcard">
+      <div class="photo">
+        <span class="photo-label">photo</span>
+        <button class="save"><span class="glyph">♡</span> save</button>
+      </div>
+      <div class="xbody">
+        <div class="identity-row">
+          <h2 class="place-name">Springville Trailhead</h2>
+          <span class="drive"><span class="data">14 min</span> drive</span>
+        </div>
+        <p class="context">Forest Park</p>
+
+        <div class="prov is-static">
+          <span class="prov-glyph">⚡</span>
+          <div>
+            <p class="prov-lead">Mostly dry</p>
+            <p class="prov-detail"><span class="data">0.2 in</span> rain last <span class="data">72 h</span> (NWS) · <span class="data">3 h 10 m</span> of daylight left</p>
+          </div>
+        </div>
+
+        <div class="strip">
+          <span class="verb">walk</span> <span class="sep">·</span> easy <span class="sep">·</span> <span class="data">~45 min</span> <span class="sep">·</span> dogs ok <span class="sep">·</span> stroller ok
+        </div>
+        <p class="prior">usually quiet on weekday mornings</p>
+
+        <p class="safety"><span class="permit">no pass required</span> · pack it out</p>
+
+        <div class="actions">
+          <button class="btn btn-primary">I&rsquo;m going</button>
+          <button class="btn btn-tertiary">more conditions &rarr;</button>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ================= CARD C — hazard-gated ================= -->
+  <section>
+    <p class="spec-caption">C · Hazard-gated — recent verification + live trigger required; assumption-of-risk framing (docs/02 §5.1)</p>
+    <article class="xcard">
+      <div class="photo">
+        <span class="photo-label">photo</span>
+        <button class="save"><span class="glyph">♡</span> save</button>
+      </div>
+      <div class="xbody">
+        <div class="identity-row">
+          <h2 class="place-name">High Rocks</h2>
+          <span class="drive"><span class="data">28 min</span> drive</span>
+        </div>
+        <p class="context">Clackamas River</p>
+
+        <div class="prov is-live">
+          <span class="prov-glyph">●</span>
+          <div>
+            <div class="prov-lead-row">
+              <p class="prov-lead">Swimmable now</p>
+              <span class="chip-hazard">hazard-gated</span>
+            </div>
+            <p class="prov-detail">Clackamas @ Estacada (<span class="data">14210000</span>) at <span class="data">980 cfs</span>, threshold <span class="data">&lt;1,200</span> · verified <span class="data">6 days</span> ago at <span class="data">1,010 cfs</span></p>
+          </div>
+        </div>
+
+        <div class="strip">
+          <span class="verb">wild-swim</span> <span class="sep">·</span> hazard-gated <span class="sep">·</span> <span class="data">~2 h</span>
+        </div>
+
+        <p class="risk">Conditions change quickly — a recent verification is not a guarantee. You are responsible for your own judgment.</p>
+
+        <p class="safety"><span class="permit">no pass required</span> · pack it out</p>
+
+        <div class="actions">
+          <button class="btn btn-primary">I&rsquo;m going</button>
+          <button class="btn btn-tertiary">more conditions &rarr;</button>
+        </div>
+      </div>
+    </article>
+  </section>
+
+</div>
+</body>
+</html>

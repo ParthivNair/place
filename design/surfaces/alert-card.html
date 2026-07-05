@@ -1,0 +1,336 @@
+<!-- @dsCard group="Surfaces" name="Condition alert" subtitle="A save is a standing query" viewport="400x760" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Place — Condition alert</title>
+<style>
+/* ============================================================
+   Place — design tokens (source of truth)
+   Direction: "field guide meets instrument panel."
+   Derived from docs/ canon:
+   - docs/02 §3: card anatomy; nothing decorative
+   - docs/00 §1: the provenance line is the brand → sensor data
+     renders in monospace, tabular figures, always
+   - docs/07 §2 P5 + §5: readable type / plain language is a
+     launch commitment, not a Phase-6 retrofit
+   - docs/02 §5: hazard framing, dispersal, no hero pins
+   - docs/04 §9: zero webfonts — system stacks only
+   Every preview in this directory inlines these tokens verbatim.
+   Edit here first; re-sync changed components after.
+   ============================================================ */
+
+:root {
+  /* ---- Paper & ink (field-guide page) ---- */
+  --paper:      #FBFAF6;  /* app background — warm off-white */
+  --card:       #FFFFFF;  /* card surface */
+  --ink:        #1C2B25;  /* primary text — fir-shadow near-black */
+  --ink-soft:   #47564E;  /* secondary text */
+  --ink-faint:  #7C8880;  /* tertiary/meta — 4.5:1 on --card at 13px+ */
+  --hairline:   #E5E2D8;  /* borders, dividers */
+  --recess:     #F2F0E9;  /* inset wells, photo placeholders */
+
+  /* ---- Brand ---- */
+  --forest:       #29583F;  /* primary actions — Douglas fir */
+  --forest-deep:  #1D4230;  /* pressed / hover */
+  --forest-tint:  #E9F0EB;  /* selected chips, quiet emphasis */
+
+  /* ---- Condition states (semantic — the core system) ----
+     live:     window firing; card has a live, provenance-backed reason
+     fading:   window closing, or reading older than 2× feed cadence
+               (docs/04 §4 rule 1: "as of <time>", never stale-as-fresh)
+     unknown:  feed down / no live window → seasonal prior only
+     hazard:   hazard-class affordances ONLY (cliff-jump, wild-swim,
+               snow travel), always with assumption-of-risk framing
+     verified: ground truth — confirm verdicts, "verified N days ago" */
+  --live:          #0E6E78;  /* river teal */
+  --live-tint:     #E2F1F0;
+  --fading:        #8F6400;  /* amber, ink-dark for text use */
+  --fading-tint:   #FAF1DC;
+  --unknown:       #66736B;  /* basalt gray */
+  --unknown-tint:  #EDEFEA;
+  --hazard:        #A03D2C;  /* rust — serious, not alarmist */
+  --hazard-tint:   #F8EAE5;
+  --verified:      #2F6E44;  /* fir green */
+  --verified-tint: #E7F1E9;
+
+  /* ---- Type ----
+     Zero webfonts. UI text: system stack. Sensor data: monospace,
+     tabular — every number the evaluator produced wears --font-data. */
+  --font-ui:   -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  --font-data: ui-monospace, "SF Mono", SFMono-Regular, Menlo,
+               Consolas, monospace;
+
+  --text-place:  20px;   /* place name — uppercase, tracked */
+  --text-lg:     18px;   /* section heads, push title */
+  --text-body:   16px;   /* body floor — P5 readability commitment */
+  --text-sub:    15px;   /* affordance strip, provenance body */
+  --text-meta:   13px;   /* hard minimum anywhere in the product */
+  --track-place: 0.05em; /* letterspacing for uppercase place names */
+  --leading:     1.5;
+
+  /* ---- Space & shape (4px grid) ---- */
+  --s1: 4px;  --s2: 8px;  --s3: 12px;  --s4: 16px;
+  --s5: 20px; --s6: 24px; --s8: 32px;
+  --radius-card:  14px;
+  --radius-chip:  999px;  /* chips, badges, filter pills */
+  --radius-ctl:   10px;   /* buttons, inputs */
+  --touch:        44px;   /* min target — one-tap verdicts must be easy */
+  --card-w:       368px;  /* card width at 400px mobile viewport */
+  --border:       1px solid var(--hairline);
+  --shadow-card:  0 1px 2px rgba(28, 43, 37, 0.06),
+                  0 4px 12px rgba(28, 43, 37, 0.05);
+}
+
+/* ---- Base ---- */
+.place-root {
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Sensor data signature: anything the evaluator measured.
+   980 cfs · 1.6 in / 72 h · −1.4 ft tide · 6:42 pm — always this class. */
+.data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.94em;
+  letter-spacing: -0.01em;
+}
+
+/* Place name: quiet all-caps, per the docs/02 §3 card mock */
+.place-name {
+  font-size: var(--text-place);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--track-place);
+  line-height: 1.25;
+}
+
+/* ============================================================
+   Surface: condition alert (docs/02 §2 Surface 3)
+   A save is a standing query, not a bookmark. The condition
+   cron re-evaluates every saved place; on a trigger transition
+   the user gets this alert. The sharpest retention surface:
+   your want-to list is a sensor network watching the outdoors
+   on your behalf.
+   ============================================================ */
+
+body {
+  margin: 0;
+  padding: var(--s4);
+}
+
+.page {
+  max-width: var(--card-w);
+  margin: 0 auto;
+}
+
+.caption {
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+  line-height: 1.45;
+  margin: 0 0 var(--s2);
+}
+.block + .caption {
+  margin-top: var(--s5);
+}
+
+/* ---- Alert card ---- */
+.alert {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s4);
+}
+
+/* top row: live state + arrival time (evaluator-produced → .data) */
+.alert-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: var(--text-meta);
+  font-weight: 600;
+  line-height: 1;
+  padding: 5px 10px;
+  border-radius: var(--radius-chip);
+}
+.badge .dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.badge.live { color: var(--live); background: var(--live-tint); }
+.stamp {
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+
+/* place name: 18px alert variant of the 20px card name */
+.alert .place-name {
+  font-size: var(--text-lg);
+  margin: var(--s3) 0 0;
+}
+
+/* the reason: live, provenance-backed — never a bare nudge */
+.reason {
+  margin: var(--s1) 0 0;
+  font-size: var(--text-body);
+  color: var(--ink-soft);
+}
+
+/* the memory line: quiet forest emphasis — you asked for this */
+.memory {
+  display: inline-block;
+  margin-top: var(--s3);
+  font-size: var(--text-sub);
+  font-weight: 600;
+  color: var(--forest);
+  background: var(--forest-tint);
+  padding: var(--s1) var(--s3);
+  border-radius: var(--radius-ctl);
+}
+
+/* exactly two actions — "I'm going" is the only conversion */
+.actions {
+  display: flex;
+  gap: var(--s2);
+  margin-top: var(--s4);
+}
+.btn {
+  flex: 1;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-ctl);
+  font-size: var(--text-sub);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.btn.primary {
+  background: var(--forest);
+  color: var(--card);
+}
+/* tertiary: quiet text button — no border, no outline, trailing → */
+.btn.tertiary {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 0;
+  color: var(--ink-soft);
+}
+
+/* ---- OS push form: the same trigger, one line ---- */
+.push {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s3) var(--s4);
+  min-height: var(--touch);
+  box-sizing: border-box;
+}
+.app-dot {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--forest);
+  margin-top: 3px;
+}
+.push-body { min-width: 0; }
+.push-app {
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+.push-app b {
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.push-msg {
+  margin: 2px 0 0;
+  font-size: var(--text-sub);
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+/* ---- Footer: the firing rule is the design ---- */
+.rule {
+  margin-top: var(--s5);
+  padding-top: var(--s3);
+  border-top: var(--border);
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+  line-height: 1.45;
+}
+</style>
+</head>
+<body class="place-root">
+  <div class="page">
+
+    <!-- variant a · bloom trigger (report-sourced) -->
+    <p class="caption">a &middot; bloom trigger &mdash; report-sourced</p>
+    <section class="alert block">
+      <div class="alert-top">
+        <span class="badge live"><span class="dot"></span>Peaking</span>
+        <span class="stamp data">Tue 8:12 am</span>
+      </div>
+      <h2 class="place-name">Dog Mountain</h2>
+      <p class="reason">Balsamroot peaking &mdash; 3 reports this week</p>
+      <span class="memory">You saved this in January.</span>
+      <div class="actions">
+        <span class="btn primary">I'm going</span>
+        <span class="btn tertiary">see conditions &rarr;</span>
+      </div>
+    </section>
+
+    <!-- variant b · flow trigger (gauge-sourced) -->
+    <p class="caption">b &middot; flow trigger &mdash; gauge-sourced</p>
+    <section class="alert block">
+      <div class="alert-top">
+        <span class="badge live"><span class="dot"></span>Flowing hard</span>
+        <span class="stamp data">Thu 7:05 am</span>
+      </div>
+      <h2 class="place-name">Tamanawas Falls</h2>
+      <p class="reason"><span class="data">1.9 in</span> rain in the last <span class="data">72 h</span> (NWS) &mdash; best window next <span class="data">3 days</span></p>
+      <span class="memory">You saved this in August.</span>
+      <div class="actions">
+        <span class="btn primary">I'm going</span>
+        <span class="btn tertiary">see conditions &rarr;</span>
+      </div>
+    </section>
+
+    <!-- variant c · the same trigger as an OS push, one line -->
+    <p class="caption">c &middot; push form &mdash; the same trigger, one line</p>
+    <div class="push block">
+      <span class="app-dot"></span>
+      <div class="push-body">
+        <p class="push-app"><b>Place</b> &middot; now</p>
+        <p class="push-msg">Dog Mountain balsamroot peaking &mdash; you saved this in January</p>
+      </div>
+    </div>
+
+    <!-- the firing rule -->
+    <p class="rule">fires only on trigger transitions &mdash; user-requested by construction (you saved the place), the one exception to the one-push-per-week cap (docs/02 &sect;2, Surface 3)</p>
+
+  </div>
+</body>
+</html>

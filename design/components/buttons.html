@@ -1,0 +1,431 @@
+<!-- @dsCard group="Components" name="Buttons & saves" subtitle="I'm going, more conditions, want-to/been/loved" viewport="400x900" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buttons &amp; saves — Place</title>
+<style>
+/* ============================================================
+   Place — design tokens (source of truth)
+   Direction: "field guide meets instrument panel."
+   Derived from docs/ canon:
+   - docs/02 §3: card anatomy; nothing decorative
+   - docs/00 §1: the provenance line is the brand → sensor data
+     renders in monospace, tabular figures, always
+   - docs/07 §2 P5 + §5: readable type / plain language is a
+     launch commitment, not a Phase-6 retrofit
+   - docs/02 §5: hazard framing, dispersal, no hero pins
+   - docs/04 §9: zero webfonts — system stacks only
+   Every preview in this directory inlines these tokens verbatim.
+   Edit here first; re-sync changed components after.
+   ============================================================ */
+
+:root {
+  /* ---- Paper & ink (field-guide page) ---- */
+  --paper:      #FBFAF6;  /* app background — warm off-white */
+  --card:       #FFFFFF;  /* card surface */
+  --ink:        #1C2B25;  /* primary text — fir-shadow near-black */
+  --ink-soft:   #47564E;  /* secondary text */
+  --ink-faint:  #7C8880;  /* tertiary/meta — 4.5:1 on --card at 13px+ */
+  --hairline:   #E5E2D8;  /* borders, dividers */
+  --recess:     #F2F0E9;  /* inset wells, photo placeholders */
+
+  /* ---- Brand ---- */
+  --forest:       #29583F;  /* primary actions — Douglas fir */
+  --forest-deep:  #1D4230;  /* pressed / hover */
+  --forest-tint:  #E9F0EB;  /* selected chips, quiet emphasis */
+
+  /* ---- Condition states (semantic — the core system) ----
+     live:     window firing; card has a live, provenance-backed reason
+     fading:   window closing, or reading older than 2× feed cadence
+               (docs/04 §4 rule 1: "as of <time>", never stale-as-fresh)
+     unknown:  feed down / no live window → seasonal prior only
+     hazard:   hazard-class affordances ONLY (cliff-jump, wild-swim,
+               snow travel), always with assumption-of-risk framing
+     verified: ground truth — confirm verdicts, "verified N days ago" */
+  --live:          #0E6E78;  /* river teal */
+  --live-tint:     #E2F1F0;
+  --fading:        #8F6400;  /* amber, ink-dark for text use */
+  --fading-tint:   #FAF1DC;
+  --unknown:       #66736B;  /* basalt gray */
+  --unknown-tint:  #EDEFEA;
+  --hazard:        #A03D2C;  /* rust — serious, not alarmist */
+  --hazard-tint:   #F8EAE5;
+  --verified:      #2F6E44;  /* fir green */
+  --verified-tint: #E7F1E9;
+
+  /* ---- Type ----
+     Zero webfonts. UI text: system stack. Sensor data: monospace,
+     tabular — every number the evaluator produced wears --font-data. */
+  --font-ui:   -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  --font-data: ui-monospace, "SF Mono", SFMono-Regular, Menlo,
+               Consolas, monospace;
+
+  --text-place:  20px;   /* place name — uppercase, tracked */
+  --text-lg:     18px;   /* section heads, push title */
+  --text-body:   16px;   /* body floor — P5 readability commitment */
+  --text-sub:    15px;   /* affordance strip, provenance body */
+  --text-meta:   13px;   /* hard minimum anywhere in the product */
+  --track-place: 0.05em; /* letterspacing for uppercase place names */
+  --leading:     1.5;
+
+  /* ---- Space & shape (4px grid) ---- */
+  --s1: 4px;  --s2: 8px;  --s3: 12px;  --s4: 16px;
+  --s5: 20px; --s6: 24px; --s8: 32px;
+  --radius-card:  14px;
+  --radius-chip:  999px;  /* chips, badges, filter pills */
+  --radius-ctl:   10px;   /* buttons, inputs */
+  --touch:        44px;   /* min target — one-tap verdicts must be easy */
+  --card-w:       368px;  /* card width at 400px mobile viewport */
+  --border:       1px solid var(--hairline);
+  --shadow-card:  0 1px 2px rgba(28, 43, 37, 0.06),
+                  0 4px 12px rgba(28, 43, 37, 0.05);
+}
+
+/* ---- Base ---- */
+.place-root {
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Sensor data signature: anything the evaluator measured.
+   980 cfs · 1.6 in / 72 h · −1.4 ft tide · 6:42 pm — always this class. */
+.data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.94em;
+  letter-spacing: -0.01em;
+}
+
+/* Place name: quiet all-caps, per the docs/02 §3 card mock */
+.place-name {
+  font-size: var(--text-place);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--track-place);
+  line-height: 1.25;
+}
+
+/* ============================================================
+   Component styles — Buttons & saves
+   ============================================================ */
+
+body {
+  margin: 0;
+  padding: var(--s5) var(--s4) var(--s8);
+}
+.stage {
+  max-width: var(--card-w);
+  margin: 0 auto;
+}
+
+/* Page header */
+.page-head { margin: 0 0 var(--s6); }
+.page-head h1 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.3;
+}
+.page-head p {
+  margin: var(--s1) 0 0;
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+
+/* Sections + captions */
+.section { margin: 0 0 var(--s8); }
+.section:last-child { margin-bottom: 0; }
+.section-label {
+  margin: 0 0 var(--s3);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+}
+.caption {
+  margin: var(--s2) 0 0;
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+  line-height: 1.45;
+}
+.variant-label {
+  margin: 0 0 var(--s2);
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+.variant + .variant { margin-top: var(--s4); }
+
+/* Specimen surface — a card, per docs/02 §3 */
+.specimen {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s4);
+}
+
+/* ---- Buttons ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.2;
+  border: none;
+  border-radius: var(--radius-ctl);
+  min-height: 48px;
+  padding: 0 var(--s4);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Primary — "I'm going" */
+.btn-primary {
+  width: 100%;
+  background: var(--forest);
+  color: var(--card);
+  font-size: var(--text-body);
+}
+.btn-primary.is-pressed { background: var(--forest-deep); }
+.btn-primary:disabled,
+.btn-primary.is-disabled {
+  background: var(--recess);
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+/* Tertiary — "more conditions →" (canonical spec: quiet text button,
+   ink-soft, no border, no outline, trailing →) */
+.btn-tertiary {
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--ink-soft);
+  font-size: var(--text-sub);
+  font-weight: 600;
+  min-height: var(--touch);
+  padding: 0 var(--s2);
+  border-radius: var(--radius-ctl);
+}
+
+/* Exactly-two-actions row — docs/02 §3: primary + tertiary, never a third */
+.action-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+.action-row .btn-primary { flex: 1; width: auto; }
+.action-row .btn-tertiary { flex: none; white-space: nowrap; }
+
+/* Card-footer context for the action row */
+.prov-line {
+  margin: 0;
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+}
+.prov-line .bolt { color: var(--live); }
+.prov-line .handle {
+  color: var(--forest);
+  font-weight: 600; /* verifier credit — the only recognition in the product */
+}
+.safety-line {
+  margin: var(--s1) 0 0;
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+.safety-line .permit {
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+.footer-rule {
+  height: 0;
+  border-top: var(--border);
+  margin: var(--s3) 0 var(--s3);
+}
+
+/* ---- Save controls — Surface 3: want-to / been / loved ---- */
+.save-group {
+  display: flex;
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-ctl);
+  overflow: hidden;
+}
+.save-seg {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  box-sizing: border-box;
+  min-height: 52px; /* ≥ --touch */
+  padding: var(--s2) var(--s2);
+  background: var(--card);
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.save-seg + .save-seg { border-left: var(--border); }
+.save-glyph {
+  font-size: 17px;
+  line-height: 1;
+  color: var(--ink-soft);
+}
+.save-label {
+  font-size: var(--text-meta);
+  line-height: 1;
+  color: var(--ink-faint);
+}
+.save-seg.is-active { background: var(--forest-tint); }
+.save-seg.is-active .save-glyph { color: var(--forest); }
+.save-seg.is-active .save-label { color: var(--forest); font-weight: 600; }
+
+/* Standing-query exemplar well */
+.alert-well {
+  margin-top: var(--s3);
+  padding: var(--s2) var(--s3);
+  background: var(--recess);
+  border-radius: var(--radius-ctl);
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+
+/* ---- Filter chips (generic-intent browse, docs/02 Surface 1) ---- */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: var(--touch);
+  padding: 0 var(--s4);
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-chip);
+  font: inherit;
+  font-size: var(--text-sub);
+  font-weight: 500;
+  color: var(--ink-soft);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.chip.is-selected {
+  background: var(--forest-tint);
+  border-color: var(--forest-tint);
+  color: var(--forest);
+  font-weight: 600;
+}
+</style>
+</head>
+<body class="place-root">
+<div class="stage">
+
+  <header class="page-head">
+    <h1>Buttons &amp; saves</h1>
+    <p>Exactly two actions per card (docs/02 §3) · saves are standing queries (Surface 3)</p>
+  </header>
+
+  <!-- 1 · Primary -->
+  <section class="section">
+    <h2 class="section-label">Primary · “I’m going”</h2>
+    <div class="specimen">
+      <div class="variant">
+        <p class="variant-label">default — forest on card, 48px</p>
+        <button type="button" class="btn btn-primary">I’m going</button>
+      </div>
+      <div class="variant">
+        <p class="variant-label">pressed — forest-deep</p>
+        <button type="button" class="btn btn-primary is-pressed">I’m going</button>
+      </div>
+      <div class="variant">
+        <p class="variant-label">disabled — recess surface, faint ink, no tap</p>
+        <button type="button" class="btn btn-primary" disabled>I’m going</button>
+      </div>
+    </div>
+    <p class="caption">The only conversion the card wants. Tapping records trip intent and snapshots the served conditions — the tap is the entire ask.</p>
+  </section>
+
+  <!-- 2 · Tertiary -->
+  <section class="section">
+    <h2 class="section-label">Tertiary · “more conditions”</h2>
+    <div class="specimen">
+      <p class="variant-label">quiet text button — ink-soft, no border, no fill</p>
+      <button type="button" class="btn-tertiary btn">more conditions →</button>
+    </div>
+    <p class="caption">Canonical tertiary spec — every second action in the system follows this: quiet text button, ink-soft, no border, no outline, trailing →. Routes to the place page’s condition detail. Never competes with the primary for weight.</p>
+  </section>
+
+  <!-- 3 · The exactly-two-actions row -->
+  <section class="section">
+    <h2 class="section-label">Card footer · the two-action row</h2>
+    <div class="specimen">
+      <p class="prov-line"><span class="bolt">⚡</span> Flowing hard right now · <span class="data">1.6 in</span> rain / <span class="data">72 h</span> (NWS) · verified Sun by <span class="handle">@gorge_amy</span></p>
+      <p class="safety-line"><span class="permit">Northwest Forest Pass required</span> · pack it out</p>
+      <div class="footer-rule"></div>
+      <div class="action-row">
+        <button type="button" class="btn btn-primary">I’m going</button>
+        <button type="button" class="btn-tertiary btn">more conditions →</button>
+      </div>
+    </div>
+    <p class="caption">Exactly two actions — primary + tertiary, nothing else. Canon forbids a third action on the card.</p>
+  </section>
+
+  <!-- 4 · Save controls -->
+  <section class="section">
+    <h2 class="section-label">Saves · want-to / been / loved</h2>
+    <div class="specimen">
+      <div class="variant">
+        <p class="variant-label">idle</p>
+        <div class="save-group">
+          <button type="button" class="save-seg"><span class="save-glyph">♡</span><span class="save-label">want-to</span></button>
+          <button type="button" class="save-seg"><span class="save-glyph">✓</span><span class="save-label">been</span></button>
+          <button type="button" class="save-seg"><span class="save-glyph">♥</span><span class="save-label">loved</span></button>
+        </div>
+      </div>
+      <div class="variant">
+        <p class="variant-label">active — forest on forest-tint</p>
+        <div class="save-group">
+          <button type="button" class="save-seg is-active"><span class="save-glyph">♥</span><span class="save-label">want-to</span></button>
+          <button type="button" class="save-seg is-active"><span class="save-glyph">✓</span><span class="save-label">been</span></button>
+          <button type="button" class="save-seg is-active"><span class="save-glyph">♥</span><span class="save-label">loved</span></button>
+        </div>
+      </div>
+      <div class="alert-well">♥ want-to arms the alert: “Dog Mountain balsamroot peaking — you saved this in January.”</div>
+    </div>
+    <p class="caption">Three taps, no lists-of-lists. A save is a standing query — saving arms a condition alert, re-evaluated by the same cron that ranks the feed.</p>
+  </section>
+
+  <!-- 5 · Filter chips -->
+  <section class="section">
+    <h2 class="section-label">Filter chip · generic intent</h2>
+    <div class="specimen">
+      <p class="variant-label">idle · selected — forest-tint fill, forest ink</p>
+      <div class="chip-row">
+        <button type="button" class="chip">trail</button>
+        <button type="button" class="chip is-selected">swim</button>
+        <button type="button" class="chip">walk</button>
+        <button type="button" class="chip">waterfall</button>
+      </div>
+    </div>
+    <p class="caption">An activity verb filters the feed to that verb’s everyday ranking — a feed filter at launch scale, not a search engine.</p>
+  </section>
+
+</div>
+</body>
+</html>

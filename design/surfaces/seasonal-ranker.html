@@ -1,0 +1,400 @@
+<!-- @dsCard group="Surfaces" name="Seasonal ranker" subtitle="Oct 2026 waterfall tool — the front door" viewport="400x1150" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Place — Seasonal ranker</title>
+<style>
+/* ============================================================
+   Place — design tokens (source of truth)
+   Direction: "field guide meets instrument panel."
+   Derived from docs/ canon:
+   - docs/02 §3: card anatomy; nothing decorative
+   - docs/00 §1: the provenance line is the brand → sensor data
+     renders in monospace, tabular figures, always
+   - docs/07 §2 P5 + §5: readable type / plain language is a
+     launch commitment, not a Phase-6 retrofit
+   - docs/02 §5: hazard framing, dispersal, no hero pins
+   - docs/04 §9: zero webfonts — system stacks only
+   Every preview in this directory inlines these tokens verbatim.
+   Edit here first; re-sync changed components after.
+   ============================================================ */
+
+:root {
+  /* ---- Paper & ink (field-guide page) ---- */
+  --paper:      #FBFAF6;  /* app background — warm off-white */
+  --card:       #FFFFFF;  /* card surface */
+  --ink:        #1C2B25;  /* primary text — fir-shadow near-black */
+  --ink-soft:   #47564E;  /* secondary text */
+  --ink-faint:  #7C8880;  /* tertiary/meta — 4.5:1 on --card at 13px+ */
+  --hairline:   #E5E2D8;  /* borders, dividers */
+  --recess:     #F2F0E9;  /* inset wells, photo placeholders */
+
+  /* ---- Brand ---- */
+  --forest:       #29583F;  /* primary actions — Douglas fir */
+  --forest-deep:  #1D4230;  /* pressed / hover */
+  --forest-tint:  #E9F0EB;  /* selected chips, quiet emphasis */
+
+  /* ---- Condition states (semantic — the core system) ----
+     live:     window firing; card has a live, provenance-backed reason
+     fading:   window closing, or reading older than 2× feed cadence
+               (docs/04 §4 rule 1: "as of <time>", never stale-as-fresh)
+     unknown:  feed down / no live window → seasonal prior only
+     hazard:   hazard-class affordances ONLY (cliff-jump, wild-swim,
+               snow travel), always with assumption-of-risk framing
+     verified: ground truth — confirm verdicts, "verified N days ago" */
+  --live:          #0E6E78;  /* river teal */
+  --live-tint:     #E2F1F0;
+  --fading:        #8F6400;  /* amber, ink-dark for text use */
+  --fading-tint:   #FAF1DC;
+  --unknown:       #66736B;  /* basalt gray */
+  --unknown-tint:  #EDEFEA;
+  --hazard:        #A03D2C;  /* rust — serious, not alarmist */
+  --hazard-tint:   #F8EAE5;
+  --verified:      #2F6E44;  /* fir green */
+  --verified-tint: #E7F1E9;
+
+  /* ---- Type ----
+     Zero webfonts. UI text: system stack. Sensor data: monospace,
+     tabular — every number the evaluator produced wears --font-data. */
+  --font-ui:   -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  --font-data: ui-monospace, "SF Mono", SFMono-Regular, Menlo,
+               Consolas, monospace;
+
+  --text-place:  20px;   /* place name — uppercase, tracked */
+  --text-lg:     18px;   /* section heads, push title */
+  --text-body:   16px;   /* body floor — P5 readability commitment */
+  --text-sub:    15px;   /* affordance strip, provenance body */
+  --text-meta:   13px;   /* hard minimum anywhere in the product */
+  --track-place: 0.05em; /* letterspacing for uppercase place names */
+  --leading:     1.5;
+
+  /* ---- Space & shape (4px grid) ---- */
+  --s1: 4px;  --s2: 8px;  --s3: 12px;  --s4: 16px;
+  --s5: 20px; --s6: 24px; --s8: 32px;
+  --radius-card:  14px;
+  --radius-chip:  999px;  /* chips, badges, filter pills */
+  --radius-ctl:   10px;   /* buttons, inputs */
+  --touch:        44px;   /* min target — one-tap verdicts must be easy */
+  --card-w:       368px;  /* card width at 400px mobile viewport */
+  --border:       1px solid var(--hairline);
+  --shadow-card:  0 1px 2px rgba(28, 43, 37, 0.06),
+                  0 4px 12px rgba(28, 43, 37, 0.05);
+}
+
+/* ---- Base ---- */
+.place-root {
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Sensor data signature: anything the evaluator measured.
+   980 cfs · 1.6 in / 72 h · −1.4 ft tide · 6:42 pm — always this class. */
+.data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.94em;
+  letter-spacing: -0.01em;
+}
+
+/* Place name: quiet all-caps, per the docs/02 §3 card mock */
+.place-name {
+  font-size: var(--text-place);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--track-place);
+  line-height: 1.25;
+}
+
+/* ============================================================
+   Seasonal ranker — public launch #1 (docs/02 §4, docs/05 Ph 2).
+   "Gorge waterfalls ranked by current flow": free, no login,
+   loads in two seconds, screenshot-ready for r/Portland.
+   Structurally a ranked list of ten — never one pin (docs/02 §5.5).
+   The ♥ save is the conversion moment: tool → save → alert → feed.
+   ============================================================ */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+button { font: inherit; cursor: pointer; }
+ol { list-style: none; }
+
+body { padding: var(--s4); }
+
+.stage {
+  width: var(--card-w);
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.spec-caption {
+  font-size: var(--text-meta);
+  line-height: 1.4;
+  color: var(--ink-faint);
+  margin-bottom: var(--s2);
+}
+.spec-caption + .spec-caption { margin-top: calc(-1 * var(--s1)); }
+.spec-caption.below { margin: var(--s3) 0 0; }
+
+/* ---- Tool shell ---- */
+.tool {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+/* ---- (1) Tool header ---- */
+.tool-head {
+  padding: var(--s5) var(--s4) var(--s4);
+  border-bottom: var(--border);
+}
+.tool-title {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ink);
+}
+.tool-sub {
+  margin-top: var(--s1);
+  font-size: var(--text-meta);
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+/* .data is 0.94em; inside 13px meta lines pin it to the 13px floor */
+.tool-sub .data,
+.spec-caption .data {
+  font-size: var(--text-meta);
+}
+
+/* ---- (2) Ranked list ---- */
+.rank-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+  min-height: var(--touch);
+  padding: var(--s3) var(--s4);
+  border-bottom: var(--border);
+}
+.rank {
+  flex: none;
+  width: 20px;
+  padding-top: 2px;
+  font-size: 17px;
+  font-weight: 500;
+  text-align: right;
+  color: var(--ink-faint);
+}
+.row-main { flex: 1; min-width: 0; }
+.row-name {
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink);
+}
+.row-driver {
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.row-driver .glyph {
+  color: var(--live);
+  margin-right: 2px;
+}
+.row-driver .state {
+  font-weight: 600;
+  color: var(--live);
+}
+.row-driver .sep { color: var(--ink-faint); }
+.row-prov {
+  margin-top: 2px;
+  font-size: var(--text-meta);
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+.row-prov .check { color: var(--verified); }
+.row-prov .verifier { font-weight: 600; color: var(--forest); }
+
+/* ♥ save — 44px target; the tool's only conversion ask */
+.save {
+  flex: none;
+  width: var(--touch);
+  height: var(--touch);
+  margin: -2px calc(-1 * var(--s2)) 0 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: var(--radius-chip);
+  font-size: 19px;
+  line-height: 1;
+  color: var(--ink-faint);
+}
+.save.saved {
+  background: var(--forest-tint);
+  color: var(--forest);
+}
+
+/* "… 10 this week" — the list is structurally ten, never one pin */
+.list-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--touch);
+  padding: 0 var(--s4);
+  border-bottom: var(--border);
+}
+.list-foot .rest {
+  font-size: 14px;
+  color: var(--ink-faint);
+}
+.list-foot .more {
+  min-height: var(--touch);
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: var(--text-sub);
+  font-weight: 600;
+  color: var(--forest);
+}
+
+/* ---- (3) Conversion strip — the save IS the funnel ---- */
+.convert {
+  padding: var(--s4);
+  background: var(--forest-tint);
+}
+.convert-lead {
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+}
+.convert-lead .heart { color: var(--forest); }
+.convert-form {
+  display: flex;
+  gap: var(--s2);
+  margin-top: var(--s3);
+}
+.email-mock {
+  flex: 1;
+  min-width: 0;
+  height: var(--touch);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--s3);
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-ctl);
+  font-size: var(--text-sub);
+  color: var(--ink-faint);
+}
+.btn-magic {
+  flex: none;
+  min-height: var(--touch);
+  padding: 0 var(--s4);
+  background: var(--forest);
+  border: 1px solid var(--forest);
+  border-radius: var(--radius-ctl);
+  font-size: var(--text-sub);
+  font-weight: 600;
+  color: var(--card);
+  white-space: nowrap;
+}
+.convert-note {
+  margin-top: var(--s2);
+  font-size: var(--text-meta);
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+</style>
+</head>
+<body class="place-root">
+<div class="stage">
+
+  <p class="spec-caption">Seasonal ranker &mdash; public launch #1 (docs/02 &sect;4): free, no login, loads in <span class="data">2 s</span>, posted to r/Portland. Structurally a ranked list of ten &mdash; never one pin (docs/02 &sect;5.5).</p>
+
+  <div class="tool">
+
+    <!-- (1) Tool header -->
+    <header class="tool-head">
+      <h1 class="tool-title">Gorge waterfalls, ranked by today&rsquo;s flow</h1>
+      <p class="tool-sub">Updated daily &middot; <span class="data">72-h</span> rain + creek gauges &middot; within <span class="data">90 min</span> of Portland</p>
+    </header>
+
+    <!-- (2) Ranked list, rows 1–5 of 10 -->
+    <ol>
+      <li class="rank-row">
+        <span class="rank data">1</span>
+        <div class="row-main">
+          <p class="row-name">Tamanawas Falls</p>
+          <p class="row-driver"><span class="glyph">&#9889;</span> <span class="data">1.6 in</span> / <span class="data">72 h</span> <span class="sep">&middot;</span> <span class="state">flowing hard</span> <span class="sep">&middot;</span> <span class="data">41 min</span></p>
+          <p class="row-prov"><span class="check">&#10003;</span> verified Sun by <span class="verifier">@gorge_amy</span> &middot; NW Forest Pass</p>
+        </div>
+        <button class="save saved" aria-label="Saved">&#9829;</button>
+      </li>
+      <li class="rank-row">
+        <span class="rank data">2</span>
+        <div class="row-main">
+          <p class="row-name">Elowah Falls</p>
+          <p class="row-driver"><span class="glyph">&#9889;</span> <span class="data">1.4 in</span> / <span class="data">72 h</span> <span class="sep">&middot;</span> <span class="state">strong</span> <span class="sep">&middot;</span> <span class="data">34 min</span></p>
+        </div>
+        <button class="save" aria-label="Save">&#9825;</button>
+      </li>
+      <li class="rank-row">
+        <span class="rank data">3</span>
+        <div class="row-main">
+          <p class="row-name">Latourell Falls</p>
+          <p class="row-driver"><span class="glyph">&#9889;</span> <span class="data">1.2 in</span> / <span class="data">72 h</span> <span class="sep">&middot;</span> <span class="state">strong</span> <span class="sep">&middot;</span> <span class="data">30 min</span></p>
+        </div>
+        <button class="save" aria-label="Save">&#9825;</button>
+      </li>
+      <li class="rank-row">
+        <span class="rank data">4</span>
+        <div class="row-main">
+          <p class="row-name">Wahclella Falls</p>
+          <p class="row-driver"><span class="glyph">&#9889;</span> <span class="data">1.1 in</span> / <span class="data">72 h</span> <span class="sep">&middot;</span> <span class="state">steady</span> <span class="sep">&middot;</span> <span class="data">38 min</span></p>
+        </div>
+        <button class="save" aria-label="Save">&#9825;</button>
+      </li>
+      <li class="rank-row">
+        <span class="rank data">5</span>
+        <div class="row-main">
+          <p class="row-name">Fairy Falls</p>
+          <p class="row-driver"><span class="glyph">&#9889;</span> <span class="data">0.9 in</span> / <span class="data">72 h</span> <span class="sep">&middot;</span> <span class="state">moderate</span> <span class="sep">&middot;</span> <span class="data">32 min</span></p>
+        </div>
+        <button class="save" aria-label="Save">&#9825;</button>
+      </li>
+    </ol>
+
+    <div class="list-foot">
+      <span class="rest">&hellip; 10 this week</span>
+      <button class="more">full list &rarr;</button>
+    </div>
+
+    <!-- (3) Conversion strip — the save IS the funnel -->
+    <div class="convert">
+      <p class="convert-lead"><span class="heart">&#9829;</span> a falls and we&rsquo;ll tell you when it&rsquo;s flowing hard.</p>
+      <div class="convert-form">
+        <div class="email-mock">you@email.com</div>
+        <button class="btn-magic">Send magic link</button>
+      </div>
+      <p class="convert-note">No password. One email when conditions fire &mdash; that&rsquo;s it.</p>
+    </div>
+
+  </div>
+
+  <p class="spec-caption below">Each row carries its live flow driver &mdash; no bare ranks (docs/02 &sect;2). Row 1 shows the saved state and the named-verifier provenance credit; rows 2&ndash;5 show the unsaved <span style="font-style: normal;">&#9825;</span>. Glyph key: &#9889; rain-driven window &middot; &#9679; gauge reading.</p>
+
+</div>
+</body>
+</html>

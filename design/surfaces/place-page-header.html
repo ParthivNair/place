@@ -1,0 +1,386 @@
+<!-- @dsCard group="Surfaces" name="Place page header" subtitle="Affordances with live condition state" viewport="400x1040" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Place — Place page header</title>
+<style>
+/* ============================================================
+   Place — design tokens (source of truth)
+   Direction: "field guide meets instrument panel."
+   Derived from docs/ canon:
+   - docs/02 §3: card anatomy; nothing decorative
+   - docs/00 §1: the provenance line is the brand → sensor data
+     renders in monospace, tabular figures, always
+   - docs/07 §2 P5 + §5: readable type / plain language is a
+     launch commitment, not a Phase-6 retrofit
+   - docs/02 §5: hazard framing, dispersal, no hero pins
+   - docs/04 §9: zero webfonts — system stacks only
+   Every preview in this directory inlines these tokens verbatim.
+   Edit here first; re-sync changed components after.
+   ============================================================ */
+
+:root {
+  /* ---- Paper & ink (field-guide page) ---- */
+  --paper:      #FBFAF6;  /* app background — warm off-white */
+  --card:       #FFFFFF;  /* card surface */
+  --ink:        #1C2B25;  /* primary text — fir-shadow near-black */
+  --ink-soft:   #47564E;  /* secondary text */
+  --ink-faint:  #7C8880;  /* tertiary/meta — 4.5:1 on --card at 13px+ */
+  --hairline:   #E5E2D8;  /* borders, dividers */
+  --recess:     #F2F0E9;  /* inset wells, photo placeholders */
+
+  /* ---- Brand ---- */
+  --forest:       #29583F;  /* primary actions — Douglas fir */
+  --forest-deep:  #1D4230;  /* pressed / hover */
+  --forest-tint:  #E9F0EB;  /* selected chips, quiet emphasis */
+
+  /* ---- Condition states (semantic — the core system) ----
+     live:     window firing; card has a live, provenance-backed reason
+     fading:   window closing, or reading older than 2× feed cadence
+               (docs/04 §4 rule 1: "as of <time>", never stale-as-fresh)
+     unknown:  feed down / no live window → seasonal prior only
+     hazard:   hazard-class affordances ONLY (cliff-jump, wild-swim,
+               snow travel), always with assumption-of-risk framing
+     verified: ground truth — confirm verdicts, "verified N days ago" */
+  --live:          #0E6E78;  /* river teal */
+  --live-tint:     #E2F1F0;
+  --fading:        #8F6400;  /* amber, ink-dark for text use */
+  --fading-tint:   #FAF1DC;
+  --unknown:       #66736B;  /* basalt gray */
+  --unknown-tint:  #EDEFEA;
+  --hazard:        #A03D2C;  /* rust — serious, not alarmist */
+  --hazard-tint:   #F8EAE5;
+  --verified:      #2F6E44;  /* fir green */
+  --verified-tint: #E7F1E9;
+
+  /* ---- Type ----
+     Zero webfonts. UI text: system stack. Sensor data: monospace,
+     tabular — every number the evaluator produced wears --font-data. */
+  --font-ui:   -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  --font-data: ui-monospace, "SF Mono", SFMono-Regular, Menlo,
+               Consolas, monospace;
+
+  --text-place:  20px;   /* place name — uppercase, tracked */
+  --text-lg:     18px;   /* section heads, push title */
+  --text-body:   16px;   /* body floor — P5 readability commitment */
+  --text-sub:    15px;   /* affordance strip, provenance body */
+  --text-meta:   13px;   /* hard minimum anywhere in the product */
+  --track-place: 0.05em; /* letterspacing for uppercase place names */
+  --leading:     1.5;
+
+  /* ---- Space & shape (4px grid) ---- */
+  --s1: 4px;  --s2: 8px;  --s3: 12px;  --s4: 16px;
+  --s5: 20px; --s6: 24px; --s8: 32px;
+  --radius-card:  14px;
+  --radius-chip:  999px;  /* chips, badges, filter pills */
+  --radius-ctl:   10px;   /* buttons, inputs */
+  --touch:        44px;   /* min target — one-tap verdicts must be easy */
+  --card-w:       368px;  /* card width at 400px mobile viewport */
+  --border:       1px solid var(--hairline);
+  --shadow-card:  0 1px 2px rgba(28, 43, 37, 0.06),
+                  0 4px 12px rgba(28, 43, 37, 0.05);
+}
+
+/* ---- Base ---- */
+.place-root {
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Sensor data signature: anything the evaluator measured.
+   980 cfs · 1.6 in / 72 h · −1.4 ft tide · 6:42 pm — always this class. */
+.data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.94em;
+  letter-spacing: -0.01em;
+}
+
+/* Place name: quiet all-caps, per the docs/02 §3 card mock */
+.place-name {
+  font-size: var(--text-place);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--track-place);
+  line-height: 1.25;
+}
+
+/* ============================================================
+   Component: place page header (Surface 2 — docs/02 §2)
+   A place page renders the graph, not a wiki article.
+   ============================================================ */
+
+body {
+  margin: 0;
+  padding: var(--s4);
+}
+
+.page {
+  max-width: var(--card-w);
+  margin: 0 auto;
+}
+
+.surface {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+/* ---- Photo placeholder (no external images) ---- */
+.photo {
+  height: 128px;
+  background: var(--recess);
+  border-bottom: var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.photo span {
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+
+/* ---- Identity block ---- */
+.identity {
+  padding: var(--s4) var(--s4) var(--s3);
+}
+.identity .locale {
+  margin-top: var(--s1);
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+}
+
+/* ---- Save group: want-to / been / loved (Surface 3) ----
+   Glyph-over-label anatomy: ♡ / ✓ / ♥ with 13px labels. */
+.save-group {
+  display: flex;
+  margin: 0 var(--s4);
+  border: var(--border);
+  border-radius: var(--radius-ctl);
+  overflow: hidden;
+}
+.save-group .seg {
+  flex: 1;
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: var(--text-meta);
+  font-weight: 500;
+  color: var(--ink-soft);
+  background: var(--card);
+}
+.save-group .seg .glyph {
+  font-size: var(--text-body);
+  line-height: 1;
+}
+.save-group .seg + .seg {
+  border-left: var(--border);
+}
+.save-group .seg.selected {
+  background: var(--forest-tint);
+  color: var(--forest);
+  font-weight: 600;
+}
+
+.caption {
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+  line-height: 1.45;
+}
+.save-caption {
+  margin: var(--s2) var(--s4) 0;
+}
+
+/* ---- Affordance list ---- */
+.section-head {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  padding: var(--s5) var(--s4) var(--s2);
+}
+
+.affordance {
+  padding: var(--s4);
+  border-top: var(--border);
+}
+.affordance .row-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+.affordance .verb {
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+.affordance .attrs {
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+.affordance .provenance {
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+  margin-top: var(--s2);
+}
+
+/* ---- Condition-state badges ----
+   Blessed spec: 13px 600 pill, 5px 10px, gap 6px, dot as a
+   7px span (hollow ring for unknown/suppressed). */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: var(--text-meta);
+  font-weight: 600;
+  line-height: 1;
+  padding: 5px 10px;
+  border-radius: var(--radius-chip);
+}
+.badge .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.badge.unknown .dot,
+.badge.suppressed-badge .dot {
+  background: transparent;
+  border: 1.5px solid currentColor;
+  box-sizing: border-box;
+}
+.badge.live    { color: var(--live);    background: var(--live-tint); }
+.badge.unknown { color: var(--unknown); background: var(--unknown-tint); }
+
+/* Hazard-gated chip: marks a hazard-class affordance that PASSED
+   both publication gates (recent verification + live trigger). */
+.chip-hazard {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  font-size: var(--text-meta);
+  font-weight: 600;
+  line-height: 1;
+  padding: 5px 10px;
+  border-radius: var(--radius-chip);
+  color: var(--hazard);
+  background: var(--hazard-tint);
+}
+
+/* Assumption-of-risk block: required with any hazard rendering
+   (docs/02 §5 rule 1). Hazard-tint container, hazard text. */
+.risk {
+  margin-top: var(--s3);
+  padding: var(--s2) var(--s3);
+  background: var(--hazard-tint);
+  border-radius: var(--radius-ctl);
+  font-size: var(--text-sub);
+  color: var(--hazard);
+  line-height: 1.45;
+}
+
+/* Suppressed row: hazard affordance that FAILED a publication gate.
+   Degrades down only — never rendered on seasonal priors alone. */
+.affordance.suppressed .verb { color: var(--ink-faint); }
+.affordance.suppressed .why {
+  font-size: var(--text-sub);
+  color: var(--ink-faint);
+  margin-top: var(--s2);
+}
+.badge.suppressed-badge {
+  color: var(--unknown);
+  background: transparent;
+  border: 1px dashed var(--unknown);
+}
+.affordance .gate-caption { margin-top: var(--s2); }
+
+/* ---- Footer caption: the page is a verification surface ---- */
+.page-caption {
+  padding: var(--s3) var(--s4) var(--s4);
+  border-top: var(--border);
+  text-align: center;
+}
+</style>
+</head>
+<body class="place-root">
+  <div class="page">
+    <div class="surface">
+
+      <!-- hero photo placeholder -->
+      <div class="photo"><span>photo</span></div>
+
+      <!-- identity: place + access context + drive time -->
+      <header class="identity">
+        <h1 class="place-name">High Rocks</h1>
+        <p class="locale">Clackamas River &middot; Carver &middot; <span class="data">28 min</span> drive</p>
+      </header>
+
+      <!-- save group: a save is a standing query (Surface 3) -->
+      <div class="save-group">
+        <div class="seg selected"><span class="glyph">&#9829;</span><span>want-to</span></div>
+        <div class="seg"><span class="glyph">&#10003;</span><span>been</span></div>
+        <div class="seg"><span class="glyph">&hearts;</span><span>loved</span></div>
+      </div>
+      <p class="caption save-caption">want-to selected &mdash; a save is a standing query; the condition cron re-evaluates it and alerts on trigger transitions</p>
+
+      <!-- affordance list: the graph, rendered -->
+      <h2 class="section-head">What you can do here</h2>
+
+      <!-- row 1 · hazard-class, gates passed → live state -->
+      <section class="affordance">
+        <div class="row-top">
+          <div>
+            <div class="verb">wild-swim</div>
+            <div class="attrs">moderate &middot; ~2 h &middot; cold water</div>
+          </div>
+          <span class="badge live"><span class="dot"></span>Swimmable now</span>
+        </div>
+        <p class="provenance">Clackamas @ Estacada (<span class="data">14210000</span>) at <span class="data">980 cfs</span>, threshold <span class="data">&lt;1,200</span> &middot; last verified Jun 27 at <span class="data">1,010 cfs</span> &middot; 3 sources</p>
+        <p style="margin-top: var(--s2);"><span class="chip-hazard">Hazard-gated</span></p>
+        <div class="risk">Conditions change quickly &mdash; a recent verification is not a guarantee. You are responsible for your own judgment.</div>
+      </section>
+
+      <!-- row 2 · non-hazard claim, seasonal prior only -->
+      <section class="affordance">
+        <div class="row-top">
+          <div>
+            <div class="verb">picnic / wade</div>
+            <div class="attrs">easy &middot; gravel bar &middot; kids ok</div>
+          </div>
+          <span class="badge unknown"><span class="dot"></span>Open &mdash; seasonal</span>
+        </div>
+        <p class="provenance">last verified May 30 &middot; 2 sources</p>
+      </section>
+
+      <!-- row 3 · hazard-class, gates failed → suppressed -->
+      <section class="affordance suppressed">
+        <div class="row-top">
+          <div>
+            <div class="verb">cliff-jump</div>
+          </div>
+          <span class="badge suppressed-badge"><span class="dot"></span>Not shown</span>
+        </div>
+        <p class="why">needs a recent verification and a live trigger</p>
+        <p class="caption gate-caption">hazard affordances degrade down only &mdash; never shown on seasonal priors alone (docs/02 &sect;5)</p>
+      </section>
+
+      <!-- verification surface note -->
+      <p class="caption page-caption">every claim on this page carries one-tap confirm / deny / changed controls &mdash; the page is a verification surface, not just a read surface</p>
+
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,290 @@
+<!-- @dsCard group="Surfaces" name="Feed header & filters" subtitle="This Weekend + verb browse + 3 filters" viewport="400x740" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feed header &amp; filters</title>
+<style>
+/* ============================================================
+   Place — design tokens (source of truth)
+   Direction: "field guide meets instrument panel."
+   Derived from docs/ canon:
+   - docs/02 §3: card anatomy; nothing decorative
+   - docs/00 §1: the provenance line is the brand → sensor data
+     renders in monospace, tabular figures, always
+   - docs/07 §2 P5 + §5: readable type / plain language is a
+     launch commitment, not a Phase-6 retrofit
+   - docs/02 §5: hazard framing, dispersal, no hero pins
+   - docs/04 §9: zero webfonts — system stacks only
+   Every preview in this directory inlines these tokens verbatim.
+   Edit here first; re-sync changed components after.
+   ============================================================ */
+
+:root {
+  /* ---- Paper & ink (field-guide page) ---- */
+  --paper:      #FBFAF6;  /* app background — warm off-white */
+  --card:       #FFFFFF;  /* card surface */
+  --ink:        #1C2B25;  /* primary text — fir-shadow near-black */
+  --ink-soft:   #47564E;  /* secondary text */
+  --ink-faint:  #7C8880;  /* tertiary/meta — 4.5:1 on --card at 13px+ */
+  --hairline:   #E5E2D8;  /* borders, dividers */
+  --recess:     #F2F0E9;  /* inset wells, photo placeholders */
+
+  /* ---- Brand ---- */
+  --forest:       #29583F;  /* primary actions — Douglas fir */
+  --forest-deep:  #1D4230;  /* pressed / hover */
+  --forest-tint:  #E9F0EB;  /* selected chips, quiet emphasis */
+
+  /* ---- Condition states (semantic — the core system) ----
+     live:     window firing; card has a live, provenance-backed reason
+     fading:   window closing, or reading older than 2× feed cadence
+               (docs/04 §4 rule 1: "as of <time>", never stale-as-fresh)
+     unknown:  feed down / no live window → seasonal prior only
+     hazard:   hazard-class affordances ONLY (cliff-jump, wild-swim,
+               snow travel), always with assumption-of-risk framing
+     verified: ground truth — confirm verdicts, "verified N days ago" */
+  --live:          #0E6E78;  /* river teal */
+  --live-tint:     #E2F1F0;
+  --fading:        #8F6400;  /* amber, ink-dark for text use */
+  --fading-tint:   #FAF1DC;
+  --unknown:       #66736B;  /* basalt gray */
+  --unknown-tint:  #EDEFEA;
+  --hazard:        #A03D2C;  /* rust — serious, not alarmist */
+  --hazard-tint:   #F8EAE5;
+  --verified:      #2F6E44;  /* fir green */
+  --verified-tint: #E7F1E9;
+
+  /* ---- Type ----
+     Zero webfonts. UI text: system stack. Sensor data: monospace,
+     tabular — every number the evaluator produced wears --font-data. */
+  --font-ui:   -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  --font-data: ui-monospace, "SF Mono", SFMono-Regular, Menlo,
+               Consolas, monospace;
+
+  --text-place:  20px;   /* place name — uppercase, tracked */
+  --text-lg:     18px;   /* section heads, push title */
+  --text-body:   16px;   /* body floor — P5 readability commitment */
+  --text-sub:    15px;   /* affordance strip, provenance body */
+  --text-meta:   13px;   /* hard minimum anywhere in the product */
+  --track-place: 0.05em; /* letterspacing for uppercase place names */
+  --leading:     1.5;
+
+  /* ---- Space & shape (4px grid) ---- */
+  --s1: 4px;  --s2: 8px;  --s3: 12px;  --s4: 16px;
+  --s5: 20px; --s6: 24px; --s8: 32px;
+  --radius-card:  14px;
+  --radius-chip:  999px;  /* chips, badges, filter pills */
+  --radius-ctl:   10px;   /* buttons, inputs */
+  --touch:        44px;   /* min target — one-tap verdicts must be easy */
+  --card-w:       368px;  /* card width at 400px mobile viewport */
+  --border:       1px solid var(--hairline);
+  --shadow-card:  0 1px 2px rgba(28, 43, 37, 0.06),
+                  0 4px 12px rgba(28, 43, 37, 0.05);
+}
+
+/* ---- Base ---- */
+.place-root {
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Sensor data signature: anything the evaluator measured.
+   980 cfs · 1.6 in / 72 h · −1.4 ft tide · 6:42 pm — always this class. */
+.data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.94em;
+  letter-spacing: -0.01em;
+}
+
+/* Place name: quiet all-caps, per the docs/02 §3 card mock */
+.place-name {
+  font-size: var(--text-place);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--track-place);
+  line-height: 1.25;
+}
+
+/* ============================================================
+   Component: feed header & filters (Surface 1 top-of-page)
+   docs/02 §2 Surface 1 · docs/07 §1 generic-intent browse
+   ============================================================ */
+
+* { box-sizing: border-box; }
+body { margin: 0; padding: var(--s4); }
+.col { max-width: var(--card-w); margin: 0 auto; }
+
+/* ---- Assembled header card ---- */
+.feed-top {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s5) var(--s4);
+}
+
+.feed-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.25;
+}
+.feed-sub {
+  margin: var(--s1) 0 0;
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+.live-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--live);
+  box-shadow: 0 0 0 3px var(--live-tint);
+}
+
+/* ---- Generic-intent browse (a feed filter, not a search engine) ---- */
+.browse {
+  margin-top: var(--s4);
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--s4);
+  background: var(--recess);
+  border: var(--border);
+  border-radius: var(--radius-ctl);
+  font-size: var(--text-body);
+  color: var(--ink-faint);
+}
+
+/* ---- The three filters ---- */
+.filter { margin-top: var(--s4); }
+.filter-label {
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+  margin-bottom: var(--s1);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch);
+  padding: 0 var(--s4);
+  border: var(--border);
+  border-radius: var(--radius-chip);
+  background: var(--card);
+  font-size: var(--text-sub);
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+.chip.is-on {
+  background: var(--forest-tint);
+  border-color: var(--forest-tint);
+  color: var(--forest);
+}
+
+/* ---- Short-feed honesty note ---- */
+.feed-count {
+  margin: var(--s3) 0;
+  text-align: center;
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+}
+
+/* ---- Specimen annotations ---- */
+.notes {
+  margin-top: var(--s2);
+  padding-top: var(--s2);
+  border-top: var(--border);
+}
+.notes-label {
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--s2);
+}
+.note {
+  margin: 0 0 var(--s1);
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+.note:last-child { margin-bottom: 0; }
+.note b { font-weight: 600; }
+
+/* .data scales 0.94em; inside meta-sized text (13px) that would land at
+   ~12.2px, under the --text-meta hard floor. Pin those spans to the floor. */
+.feed-sub .data,
+.note .data { font-size: var(--text-meta); }
+</style>
+</head>
+<body class="place-root">
+<div class="col">
+
+  <!-- Assembled top-of-page: Surface 1, docs/02 §2 -->
+  <section class="feed-top">
+    <h1 class="feed-title">This Weekend</h1>
+    <p class="feed-sub">
+      <span class="live-dot"></span>
+      <span><span class="data">Thu Jul 2</span> · ranked by live conditions</span>
+    </p>
+
+    <div class="browse">Try &ldquo;trail&rdquo;, &ldquo;swim&rdquo;, &ldquo;walk&rdquo;&hellip;</div>
+
+    <div class="filter">
+      <div class="filter-label">drive time</div>
+      <div class="chips">
+        <span class="chip"><span class="data">&le;30 min</span></span>
+        <span class="chip is-on"><span class="data">&le;60 min</span></span>
+        <span class="chip"><span class="data">&le;90 min</span></span>
+      </div>
+    </div>
+
+    <div class="filter">
+      <div class="filter-label">activity</div>
+      <div class="chips">
+        <span class="chip">trail</span>
+        <span class="chip is-on">swim</span>
+        <span class="chip">waterfall</span>
+        <span class="chip">walk</span>
+        <span class="chip">viewpoint</span>
+      </div>
+    </div>
+
+    <div class="filter">
+      <div class="filter-label">with</div>
+      <div class="chips">
+        <span class="chip is-on">dogs</span>
+        <span class="chip">kids</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Short-feed honesty note (sits between filters and the first card) -->
+  <p class="feed-count"><span class="data">7</span> places worth it this weekend</p>
+
+  <!-- Specimen annotations -->
+  <div class="notes">
+    <div class="notes-label">Notes</div>
+    <p class="note"><b>browse</b> &mdash; an activity verb filters the feed to the everyday ranking. A feed filter, not a search engine; NL search is deferred.</p>
+    <p class="note"><b>filters</b> &mdash; the feed is the query: three filters, nothing else. <span class="data">&le;90 min</span> is the polygon &mdash; the whole universe.</p>
+    <p class="note"><b>feed length</b> &mdash; when the evaluator can&rsquo;t justify cards with live reasons, the feed shortens. A short honest feed beats a long static one.</p>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,429 @@
+<!-- @dsCard group="Surfaces" name="Sunday push" subtitle="Two one-tap questions + next weekend" viewport="400x1060" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Place — Sunday push</title>
+<style>
+/* ============================================================
+   Place — design tokens (source of truth)
+   Direction: "field guide meets instrument panel."
+   Derived from docs/ canon:
+   - docs/02 §3: card anatomy; nothing decorative
+   - docs/00 §1: the provenance line is the brand → sensor data
+     renders in monospace, tabular figures, always
+   - docs/07 §2 P5 + §5: readable type / plain language is a
+     launch commitment, not a Phase-6 retrofit
+   - docs/02 §5: hazard framing, dispersal, no hero pins
+   - docs/04 §9: zero webfonts — system stacks only
+   Every preview in this directory inlines these tokens verbatim.
+   Edit here first; re-sync changed components after.
+   ============================================================ */
+
+:root {
+  /* ---- Paper & ink (field-guide page) ---- */
+  --paper:      #FBFAF6;  /* app background — warm off-white */
+  --card:       #FFFFFF;  /* card surface */
+  --ink:        #1C2B25;  /* primary text — fir-shadow near-black */
+  --ink-soft:   #47564E;  /* secondary text */
+  --ink-faint:  #7C8880;  /* tertiary/meta — 4.5:1 on --card at 13px+ */
+  --hairline:   #E5E2D8;  /* borders, dividers */
+  --recess:     #F2F0E9;  /* inset wells, photo placeholders */
+
+  /* ---- Brand ---- */
+  --forest:       #29583F;  /* primary actions — Douglas fir */
+  --forest-deep:  #1D4230;  /* pressed / hover */
+  --forest-tint:  #E9F0EB;  /* selected chips, quiet emphasis */
+
+  /* ---- Condition states (semantic — the core system) ----
+     live:     window firing; card has a live, provenance-backed reason
+     fading:   window closing, or reading older than 2× feed cadence
+               (docs/04 §4 rule 1: "as of <time>", never stale-as-fresh)
+     unknown:  feed down / no live window → seasonal prior only
+     hazard:   hazard-class affordances ONLY (cliff-jump, wild-swim,
+               snow travel), always with assumption-of-risk framing
+     verified: ground truth — confirm verdicts, "verified N days ago" */
+  --live:          #0E6E78;  /* river teal */
+  --live-tint:     #E2F1F0;
+  --fading:        #8F6400;  /* amber, ink-dark for text use */
+  --fading-tint:   #FAF1DC;
+  --unknown:       #66736B;  /* basalt gray */
+  --unknown-tint:  #EDEFEA;
+  --hazard:        #A03D2C;  /* rust — serious, not alarmist */
+  --hazard-tint:   #F8EAE5;
+  --verified:      #2F6E44;  /* fir green */
+  --verified-tint: #E7F1E9;
+
+  /* ---- Type ----
+     Zero webfonts. UI text: system stack. Sensor data: monospace,
+     tabular — every number the evaluator produced wears --font-data. */
+  --font-ui:   -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  --font-data: ui-monospace, "SF Mono", SFMono-Regular, Menlo,
+               Consolas, monospace;
+
+  --text-place:  20px;   /* place name — uppercase, tracked */
+  --text-lg:     18px;   /* section heads, push title */
+  --text-body:   16px;   /* body floor — P5 readability commitment */
+  --text-sub:    15px;   /* affordance strip, provenance body */
+  --text-meta:   13px;   /* hard minimum anywhere in the product */
+  --track-place: 0.05em; /* letterspacing for uppercase place names */
+  --leading:     1.5;
+
+  /* ---- Space & shape (4px grid) ---- */
+  --s1: 4px;  --s2: 8px;  --s3: 12px;  --s4: 16px;
+  --s5: 20px; --s6: 24px; --s8: 32px;
+  --radius-card:  14px;
+  --radius-chip:  999px;  /* chips, badges, filter pills */
+  --radius-ctl:   10px;   /* buttons, inputs */
+  --touch:        44px;   /* min target — one-tap verdicts must be easy */
+  --card-w:       368px;  /* card width at 400px mobile viewport */
+  --border:       1px solid var(--hairline);
+  --shadow-card:  0 1px 2px rgba(28, 43, 37, 0.06),
+                  0 4px 12px rgba(28, 43, 37, 0.05);
+}
+
+/* ---- Base ---- */
+.place-root {
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Sensor data signature: anything the evaluator measured.
+   980 cfs · 1.6 in / 72 h · −1.4 ft tide · 6:42 pm — always this class. */
+.data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.94em;
+  letter-spacing: -0.01em;
+}
+
+/* Place name: quiet all-caps, per the docs/02 §3 card mock */
+.place-name {
+  font-size: var(--text-place);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--track-place);
+  line-height: 1.25;
+}
+
+/* ============================================================
+   Surface: the Sunday push (docs/02 §1 + §2 Surface 4).
+   The verification prompt and the re-engagement prompt are the
+   same notification. One per user per week, Sun 6:00 pm local,
+   hard cap. At most two one-tap questions, drawn from the
+   visited place's claims by (1 − confidence) × decay_rate.
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+body, p, h1, h2, h3 { margin: 0; }
+button { font: inherit; cursor: pointer; }
+
+body { padding: var(--s4); }
+
+.stage {
+  width: var(--card-w);
+  max-width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s5);
+}
+
+.spec-head { padding-top: var(--s2); }
+.spec-title { font-size: var(--text-lg); font-weight: 700; }
+.spec-sub {
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+  margin-top: var(--s1);
+}
+
+.variant { display: flex; flex-direction: column; gap: var(--s2); }
+
+.caption {
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+  line-height: 1.45;
+  padding: 0 var(--s1);
+}
+.caption b { font-weight: 600; color: var(--ink-soft); }
+
+/* .data is 0.94em; inside 13px meta lines that would compute to
+   ~12.2px, under the product-wide 13px floor. Clamp to the floor. */
+.notif-meta .data,
+.caption .data,
+.drive .data { font-size: var(--text-meta); }
+
+/* ---- Shared card shell ---- */
+.pcard {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s4);
+}
+
+/* ---- (1) OS notification mock ---- */
+.notif {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+}
+.notif-icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--forest);
+  border-radius: var(--radius-ctl);
+  color: var(--card);
+  font-size: var(--text-body);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.notif-copy { flex: 1; min-width: 0; }
+.notif-meta {
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+.notif-body {
+  font-size: var(--text-body);
+  line-height: 1.45;
+  margin-top: 2px;
+}
+
+/* ---- (2) The verdict sheet ---- */
+.sheet-head { padding-bottom: var(--s1); }
+.sheet-title {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.3;
+}
+.sheet-sub {
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+
+.qblock {
+  margin-top: var(--s3);
+  padding-top: var(--s3);
+  border-top: var(--border);
+}
+.q-eyebrow {
+  font-size: var(--text-meta);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--track-place);
+  color: var(--ink-faint);
+}
+.q-text {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  line-height: 1.35;
+  margin-top: var(--s1);
+}
+.verdicts { display: flex; gap: var(--s2); margin-top: var(--s3); }
+.vbtn {
+  appearance: none;
+  flex: 1;
+  min-height: var(--touch);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s1);
+  padding: 0 var(--s2);
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-ctl);
+}
+.vbtn .glyph { font-size: 15px; }
+
+/* Auto-snapshot micro-line — the user never describes the weather */
+.micro {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  margin-top: var(--s4);
+  padding: var(--s3);
+  background: var(--recess);
+  border-radius: var(--radius-ctl);
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+.micro-mark { flex: none; font-weight: 700; color: var(--verified); }
+
+/* ---- (3) Next weekend — the re-engagement half ---- */
+.nw-head-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+.nw-head { font-size: var(--text-lg); font-weight: 700; }
+.nw-meta { font-size: var(--text-meta); color: var(--ink-faint); white-space: nowrap; }
+
+.mini-card {
+  margin-top: var(--s3);
+  border: var(--border);
+  border-radius: var(--radius-ctl);
+  padding: var(--s3);
+}
+.mini-identity {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+.place-name.mini { font-size: var(--text-lg); }
+.drive {
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.prov {
+  display: flex;
+  gap: var(--s2);
+  margin-top: var(--s2);
+}
+.prov-glyph {
+  flex: none;
+  width: 22px;
+  text-align: center;
+  font-size: var(--text-sub);
+  line-height: var(--leading);
+}
+.prov-lead {
+  font-size: var(--text-body);
+  font-weight: 700;
+}
+.prov-detail {
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+
+/* State colorway — glyph + lead only; detail stays ink-soft */
+.prov.is-live .prov-glyph,
+.prov.is-live .prov-lead { color: var(--live); }
+
+.btn-feed {
+  appearance: none;
+  width: 100%;
+  min-height: var(--touch);
+  margin-top: var(--s3);
+  border-radius: var(--radius-ctl);
+  background: var(--forest);
+  border: 1px solid var(--forest);
+  color: var(--card);
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+
+/* ---- Rule note ---- */
+.note {
+  border-left: 2px solid var(--hairline);
+  padding-left: var(--s3);
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+  line-height: 1.5;
+}
+.note b { font-weight: 600; color: var(--ink-soft); }
+</style>
+</head>
+<body class="place-root">
+<div class="stage">
+
+  <header class="spec-head">
+    <h1 class="spec-title">Sunday push</h1>
+    <p class="spec-sub">One notification per week — the verification prompt and the re-engagement prompt are the same message (docs/02 §1).</p>
+  </header>
+
+  <!-- (1) OS notification -->
+  <section class="variant">
+    <div class="pcard notif">
+      <span class="notif-icon" aria-hidden="true">P</span>
+      <div class="notif-copy">
+        <p class="notif-meta">Place · Sun <span class="data">6:00 pm</span></p>
+        <p class="notif-body">Quick one — was High Rocks good yesterday? Plus: next weekend looks great for waterfalls.</p>
+      </div>
+    </div>
+    <p class="caption"><b>1 · The notification.</b> Sun <span class="data">6:00 pm</span> local, hard-capped at one per week — verify and re-engage are one tap apart, in one message.</p>
+  </section>
+
+  <!-- (2) Opened — the verdict sheet -->
+  <section class="variant">
+    <div class="pcard">
+      <div class="sheet-head">
+        <h2 class="sheet-title">You went to High Rocks —</h2>
+        <p class="sheet-sub">two taps and you&rsquo;re done</p>
+      </div>
+
+      <div class="qblock">
+        <p class="q-eyebrow">1 of 2 · wild-swim claim</p>
+        <p class="q-text">Was it swimmable?</p>
+        <div class="verdicts">
+          <button type="button" class="vbtn">Yes <span class="glyph">✓</span></button>
+          <button type="button" class="vbtn">No</button>
+          <button type="button" class="vbtn">Changed</button>
+        </div>
+      </div>
+
+      <div class="qblock">
+        <p class="q-eyebrow">2 of 2 · access claim</p>
+        <p class="q-text">Is the rope swing still up?</p>
+        <div class="verdicts">
+          <button type="button" class="vbtn">Yes <span class="glyph">✓</span></button>
+          <button type="button" class="vbtn">No</button>
+        </div>
+      </div>
+
+      <p class="micro"><span class="micro-mark">✓</span><span>Answers are logged with Saturday&rsquo;s conditions — <span class="data">990 cfs</span>, <span class="data">82°F</span> — automatically.</span></p>
+    </div>
+    <p class="caption"><b>2 · The verdict sheet.</b> At most two questions, drawn from the visited place&rsquo;s claims by lowest confidence × fastest decay — access claims dominate. Never &ldquo;How was it?&rdquo;</p>
+  </section>
+
+  <!-- (3) Next weekend — same notification, re-engagement half -->
+  <section class="variant">
+    <div class="pcard">
+      <div class="nw-head-row">
+        <h2 class="nw-head">Next weekend</h2>
+        <p class="nw-meta">top feed card</p>
+      </div>
+
+      <article class="mini-card">
+        <div class="mini-identity">
+          <h3 class="place-name mini">Tamanawas Falls</h3>
+          <span class="drive"><span class="data">41 min</span> drive</span>
+        </div>
+        <div class="prov is-live">
+          <span class="prov-glyph">⚡</span>
+          <div>
+            <p class="prov-lead">Flowing hard right now</p>
+            <p class="prov-detail"><span class="data">1.6 in</span> rain in the last <span class="data">72 h</span> (NWS) — best window next <span class="data">3–4 days</span></p>
+          </div>
+        </div>
+      </article>
+
+      <button type="button" class="btn-feed">see the feed &rarr;</button>
+    </div>
+    <p class="caption"><b>3 · The re-engagement half.</b> Verify → see what&rsquo;s good next weekend → save or &ldquo;I&rsquo;m going&rdquo; — the loop closes.</p>
+  </section>
+
+  <p class="note"><b>Feed-only rule.</b> If no &ldquo;I&rsquo;m going&rdquo; was tapped that week, the push carries only the next-weekend card — no questions. Never ask about a trip we don&rsquo;t know happened (docs/02 §2 Surface 4).</p>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,505 @@
+<!-- @dsCard group="Foundations" name="Spacing & shape" subtitle="4px grid, radii, touch targets, card metrics" viewport="760x820" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Place — Spacing &amp; shape</title>
+<style>
+/* ============================================================
+   Place — design tokens (source of truth)
+   Direction: "field guide meets instrument panel."
+   Derived from docs/ canon:
+   - docs/02 §3: card anatomy; nothing decorative
+   - docs/00 §1: the provenance line is the brand → sensor data
+     renders in monospace, tabular figures, always
+   - docs/07 §2 P5 + §5: readable type / plain language is a
+     launch commitment, not a Phase-6 retrofit
+   - docs/02 §5: hazard framing, dispersal, no hero pins
+   - docs/04 §9: zero webfonts — system stacks only
+   Every preview in this directory inlines these tokens verbatim.
+   Edit here first; re-sync changed components after.
+   ============================================================ */
+
+:root {
+  /* ---- Paper & ink (field-guide page) ---- */
+  --paper:      #FBFAF6;  /* app background — warm off-white */
+  --card:       #FFFFFF;  /* card surface */
+  --ink:        #1C2B25;  /* primary text — fir-shadow near-black */
+  --ink-soft:   #47564E;  /* secondary text */
+  --ink-faint:  #7C8880;  /* tertiary/meta — 4.5:1 on --card at 13px+ */
+  --hairline:   #E5E2D8;  /* borders, dividers */
+  --recess:     #F2F0E9;  /* inset wells, photo placeholders */
+
+  /* ---- Brand ---- */
+  --forest:       #29583F;  /* primary actions — Douglas fir */
+  --forest-deep:  #1D4230;  /* pressed / hover */
+  --forest-tint:  #E9F0EB;  /* selected chips, quiet emphasis */
+
+  /* ---- Condition states (semantic — the core system) ----
+     live:     window firing; card has a live, provenance-backed reason
+     fading:   window closing, or reading older than 2× feed cadence
+               (docs/04 §4 rule 1: "as of <time>", never stale-as-fresh)
+     unknown:  feed down / no live window → seasonal prior only
+     hazard:   hazard-class affordances ONLY (cliff-jump, wild-swim,
+               snow travel), always with assumption-of-risk framing
+     verified: ground truth — confirm verdicts, "verified N days ago" */
+  --live:          #0E6E78;  /* river teal */
+  --live-tint:     #E2F1F0;
+  --fading:        #8F6400;  /* amber, ink-dark for text use */
+  --fading-tint:   #FAF1DC;
+  --unknown:       #66736B;  /* basalt gray */
+  --unknown-tint:  #EDEFEA;
+  --hazard:        #A03D2C;  /* rust — serious, not alarmist */
+  --hazard-tint:   #F8EAE5;
+  --verified:      #2F6E44;  /* fir green */
+  --verified-tint: #E7F1E9;
+
+  /* ---- Type ----
+     Zero webfonts. UI text: system stack. Sensor data: monospace,
+     tabular — every number the evaluator produced wears --font-data. */
+  --font-ui:   -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  --font-data: ui-monospace, "SF Mono", SFMono-Regular, Menlo,
+               Consolas, monospace;
+
+  --text-place:  20px;   /* place name — uppercase, tracked */
+  --text-lg:     18px;   /* section heads, push title */
+  --text-body:   16px;   /* body floor — P5 readability commitment */
+  --text-sub:    15px;   /* affordance strip, provenance body */
+  --text-meta:   13px;   /* hard minimum anywhere in the product */
+  --track-place: 0.05em; /* letterspacing for uppercase place names */
+  --leading:     1.5;
+
+  /* ---- Space & shape (4px grid) ---- */
+  --s1: 4px;  --s2: 8px;  --s3: 12px;  --s4: 16px;
+  --s5: 20px; --s6: 24px; --s8: 32px;
+  --radius-card:  14px;
+  --radius-chip:  999px;  /* chips, badges, filter pills */
+  --radius-ctl:   10px;   /* buttons, inputs */
+  --touch:        44px;   /* min target — one-tap verdicts must be easy */
+  --card-w:       368px;  /* card width at 400px mobile viewport */
+  --border:       1px solid var(--hairline);
+  --shadow-card:  0 1px 2px rgba(28, 43, 37, 0.06),
+                  0 4px 12px rgba(28, 43, 37, 0.05);
+}
+
+/* ---- Base ---- */
+.place-root {
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Sensor data signature: anything the evaluator measured.
+   980 cfs · 1.6 in / 72 h · −1.4 ft tide · 6:42 pm — always this class. */
+.data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.94em;
+  letter-spacing: -0.01em;
+}
+
+/* Place name: quiet all-caps, per the docs/02 §3 card mock */
+.place-name {
+  font-size: var(--text-place);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--track-place);
+  line-height: 1.25;
+}
+
+/* ============================================================
+   Specimen: Spacing & shape
+   ============================================================ */
+* { box-sizing: border-box; }
+body { margin: 0; padding: var(--s4); }
+
+.wrap {
+  max-width: 728px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s4);
+  padding: 0 var(--s1);
+}
+.head h1 { margin: 0; font-size: var(--text-lg); font-weight: 700; }
+
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s4); }
+
+.panel {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s4);
+}
+.panel-h {
+  margin: 0 0 var(--s3);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+}
+
+.tok {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-meta);
+  letter-spacing: -0.01em;
+  color: var(--ink-soft);
+}
+.cap { font-size: var(--text-meta); color: var(--ink-faint); line-height: 1.45; }
+
+/* ---- 1 · the 4px grid ---- */
+.scale { display: flex; flex-direction: column; gap: var(--s2); }
+.srow {
+  display: grid;
+  grid-template-columns: 44px 44px 28px 1fr;
+  gap: var(--s3);
+  align-items: center;
+  min-height: var(--s5);
+}
+.track {
+  width: 40px;
+  height: 14px;
+  position: relative;
+  background: repeating-linear-gradient(
+    to right, var(--hairline) 0 1px, transparent 1px 4px);
+}
+.bar { position: absolute; top: 0; bottom: 0; left: 0; background: var(--forest); }
+.srow .val { text-align: right; color: var(--ink); }
+
+/* ---- shared paper strip for shape demos ---- */
+.strip {
+  background: var(--paper);
+  border-radius: var(--radius-ctl);
+  padding: var(--s3);
+  display: flex;
+  gap: var(--s3);
+  align-items: flex-end;
+  justify-content: space-between;
+}
+.demo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s2);
+  min-width: 0;
+}
+
+/* ---- 2 · radii ---- */
+.d-card {
+  width: 84px; height: 58px;
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+.d-ctl {
+  height: var(--touch);
+  padding: 0 var(--s4);
+  display: inline-flex;
+  align-items: center;
+  background: var(--forest);
+  color: var(--card);
+  border-radius: var(--radius-ctl);
+  font-size: var(--text-sub);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.d-chip {
+  height: 28px;
+  padding: 0 var(--s3);
+  display: inline-flex;
+  align-items: center;
+  background: var(--forest-tint);
+  color: var(--forest);
+  border-radius: var(--radius-chip);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---- 3 · touch target ---- */
+.touch-row { display: flex; align-items: center; gap: var(--s2); margin: var(--s2) 0 var(--s2); }
+.mlabel { color: var(--ink); }
+.bracket {
+  width: 6px;
+  height: var(--touch);
+  border-top: 1px solid var(--ink-faint);
+  border-bottom: 1px solid var(--ink-faint);
+  border-left: 1px solid var(--ink-faint);
+}
+.v-btn {
+  min-height: var(--touch);
+  padding: 0 var(--s5);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-ctl);
+  font-family: var(--font-ui); /* buttons don't inherit font-family */
+  font-size: var(--text-sub);
+  font-weight: 600;
+  color: var(--ink);
+}
+.v-btn .tick { color: var(--verified); }
+
+/* ---- 4 · hairline & shadow specimens ---- */
+.sp-hair {
+  width: 100%; height: 56px;
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-ctl);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--s3);
+}
+.sp-hair .divider { width: 100%; height: 1px; background: var(--hairline); }
+.sp-shadow {
+  width: 100%; height: 56px;
+  background: var(--card);
+  border-radius: var(--radius-ctl);
+  box-shadow: var(--shadow-card);
+}
+
+/* ---- 5 · card metrics ---- */
+.metrics { display: flex; gap: var(--s5); align-items: flex-start; }
+.skel-col { flex: none; }
+.skel {
+  width: var(--card-w);
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s4);
+}
+.pad-guide {
+  outline: 1px dashed var(--ink-faint);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: 1px; /* keep zone fills clear of the dashed guide */
+}
+.zone {
+  background: var(--recess);
+  border-radius: var(--s1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 var(--s2);
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+.z-actions { display: flex; gap: var(--s2); }
+.z-actions .zone { flex: 1; min-height: var(--touch); }
+.wbrk {
+  margin-top: var(--s2);
+  height: 6px;
+  border-left: 1px solid var(--ink-faint);
+  border-right: 1px solid var(--ink-faint);
+  border-bottom: 1px solid var(--ink-faint);
+}
+.wlabel { display: block; text-align: center; margin-top: var(--s1); }
+
+.notes { flex: 1; display: flex; flex-direction: column; gap: var(--s3); padding-top: var(--s1); }
+.note { display: grid; grid-template-columns: 14px 1fr; gap: var(--s2); align-items: start; }
+.key { width: 14px; height: 14px; margin-top: 3px; border-radius: var(--s1); }
+.key-pad    { border: 1px dashed var(--ink-faint); }
+.key-border { background: var(--card); border: var(--border); }
+.key-radius { background: var(--card); border: var(--border); border-radius: 7px; }
+.key-shadow { background: var(--card); box-shadow: var(--shadow-card); }
+.key-width  { border-left: 1px solid var(--ink-faint); border-right: 1px solid var(--ink-faint); border-radius: 0; }
+.note .cap { display: block; }
+</style>
+</head>
+<body class="place-root">
+<div class="wrap">
+
+  <header class="head">
+    <h1>Spacing &amp; shape</h1>
+    <span class="cap">every measure sits on the 4px grid</span>
+  </header>
+
+  <div class="row">
+
+    <!-- 1 · the 4px grid -->
+    <section class="panel">
+      <h2 class="panel-h">Spacing scale — 4px grid</h2>
+      <div class="scale">
+        <div class="srow">
+          <span class="tok">--s1</span>
+          <span class="track"><span class="bar" style="width: var(--s1)"></span></span>
+          <span class="tok val">4</span>
+          <span class="cap">hairline gaps, glyph-to-text</span>
+        </div>
+        <div class="srow">
+          <span class="tok">--s2</span>
+          <span class="track"><span class="bar" style="width: var(--s2)"></span></span>
+          <span class="tok val">8</span>
+          <span class="cap">chip padding, inline gaps</span>
+        </div>
+        <div class="srow">
+          <span class="tok">--s3</span>
+          <span class="track"><span class="bar" style="width: var(--s3)"></span></span>
+          <span class="tok val">12</span>
+          <span class="cap">intra-card rhythm</span>
+        </div>
+        <div class="srow">
+          <span class="tok">--s4</span>
+          <span class="track"><span class="bar" style="width: var(--s4)"></span></span>
+          <span class="tok val">16</span>
+          <span class="cap">card padding · page gutter</span>
+        </div>
+        <div class="srow">
+          <span class="tok">--s5</span>
+          <span class="track"><span class="bar" style="width: var(--s5)"></span></span>
+          <span class="tok val">20</span>
+          <span class="cap">gap between feed cards</span>
+        </div>
+        <div class="srow">
+          <span class="tok">--s6</span>
+          <span class="track"><span class="bar" style="width: var(--s6)"></span></span>
+          <span class="tok val">24</span>
+          <span class="cap">section spacing</span>
+        </div>
+        <div class="srow">
+          <span class="tok">--s8</span>
+          <span class="track"><span class="bar" style="width: var(--s8)"></span></span>
+          <span class="tok val">32</span>
+          <span class="cap">page-level breaks</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 · radii -->
+    <section class="panel">
+      <h2 class="panel-h">Radii — one shape per role</h2>
+      <div class="strip">
+        <div class="demo">
+          <div class="d-card"></div>
+          <span class="tok">--radius-card · 14</span>
+        </div>
+        <div class="demo">
+          <div class="d-ctl">I&rsquo;m going</div>
+          <span class="tok">--radius-ctl · 10</span>
+        </div>
+        <div class="demo">
+          <div class="d-chip">moderate</div>
+          <span class="tok">--radius-chip · pill</span>
+        </div>
+      </div>
+      <p class="cap" style="margin: var(--s3) 0 0;">
+        cards frame, controls act, chips describe — the corner tells you which;
+        nothing decorative beyond that
+      </p>
+    </section>
+
+    <!-- 3 · touch target -->
+    <section class="panel">
+      <h2 class="panel-h">Touch — minimum target</h2>
+      <span class="cap">one-tap verdict · Tamanawas Falls</span>
+      <div class="touch-row">
+        <span class="tok mlabel">44px</span>
+        <span class="bracket"></span>
+        <button class="v-btn" type="button"><span class="tick">&#10003;</span> Still flowing</button>
+      </div>
+      <p class="cap" style="margin: 0;">
+        one-tap verdicts are the moat&rsquo;s atomic unit &mdash; targets never
+        smaller than 44px
+      </p>
+    </section>
+
+    <!-- 4 · hairline & shadow -->
+    <section class="panel">
+      <h2 class="panel-h">Hairline &amp; shadow</h2>
+      <div class="strip">
+        <div class="demo">
+          <div class="sp-hair"><span class="divider"></span></div>
+          <span class="tok">--hairline · 1px</span>
+          <span class="cap">borders &amp; dividers — the only chrome</span>
+        </div>
+        <div class="demo">
+          <div class="sp-shadow"></div>
+          <span class="tok">--shadow-card</span>
+          <span class="cap">two soft ink layers — max elevation</span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- 5 · card metrics -->
+  <section class="panel">
+    <h2 class="panel-h">Card metrics — the atomic unit of the feed</h2>
+    <div class="metrics">
+      <div class="skel-col">
+        <div class="skel">
+          <div class="pad-guide">
+            <div class="zone" style="height: 48px;">photo</div>
+            <div class="zone" style="height: 30px;">identity — place &middot; drive time</div>
+            <div class="zone" style="height: 44px;">provenance line — reason &middot; source &middot; @gorge_amy</div>
+            <div class="zone" style="height: 26px;">affordance strip</div>
+            <div class="zone" style="height: 22px;">safety &middot; Northwest Forest Pass</div>
+            <div class="z-actions">
+              <div class="zone">I&rsquo;m going</div>
+              <div class="zone">more conditions &rarr;</div>
+            </div>
+          </div>
+        </div>
+        <div class="wbrk"></div>
+        <span class="tok wlabel">--card-w · 368px</span>
+      </div>
+      <div class="notes">
+        <div class="note">
+          <span class="key key-pad"></span>
+          <span><span class="tok">--s4 · 16px</span><br>
+          <span class="cap">internal padding on all four edges (dashed guide)</span></span>
+        </div>
+        <div class="note">
+          <span class="key key-border"></span>
+          <span><span class="tok">--border</span><br>
+          <span class="cap">1px solid --hairline — the card&rsquo;s only outline</span></span>
+        </div>
+        <div class="note">
+          <span class="key key-radius"></span>
+          <span><span class="tok">--radius-card · 14px</span><br>
+          <span class="cap">corner radius on every card surface</span></span>
+        </div>
+        <div class="note">
+          <span class="key key-shadow"></span>
+          <span><span class="tok">--shadow-card</span><br>
+          <span class="cap">two low-alpha ink layers — the highest elevation in the app</span></span>
+        </div>
+        <div class="note">
+          <span class="key key-width"></span>
+          <span><span class="tok">--card-w · 368px</span><br>
+          <span class="cap">one uniform card size for every feed slot</span></span>
+        </div>
+        <p class="cap" style="margin: var(--s1) 0 0;">
+          all feed cards are uniform &mdash; never a hero card, never a single
+          viral pin. Every surface is a ranked list of ten; dispersal is a
+          rendering-layer rule (docs/02 &sect;5).
+        </p>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

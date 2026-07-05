@@ -1,0 +1,345 @@
+<!-- @dsCard group="Components" name="Safety & stewardship" subtitle="Permits, LNT, assumption-of-risk" viewport="400x720" -->
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Place · Safety &amp; stewardship line</title>
+<style>
+/* ============================================================
+   Place — design tokens (source of truth)
+   Direction: "field guide meets instrument panel."
+   Derived from docs/ canon:
+   - docs/02 §3: card anatomy; nothing decorative
+   - docs/00 §1: the provenance line is the brand → sensor data
+     renders in monospace, tabular figures, always
+   - docs/07 §2 P5 + §5: readable type / plain language is a
+     launch commitment, not a Phase-6 retrofit
+   - docs/02 §5: hazard framing, dispersal, no hero pins
+   - docs/04 §9: zero webfonts — system stacks only
+   Every preview in this directory inlines these tokens verbatim.
+   Edit here first; re-sync changed components after.
+   ============================================================ */
+
+:root {
+  /* ---- Paper & ink (field-guide page) ---- */
+  --paper:      #FBFAF6;  /* app background — warm off-white */
+  --card:       #FFFFFF;  /* card surface */
+  --ink:        #1C2B25;  /* primary text — fir-shadow near-black */
+  --ink-soft:   #47564E;  /* secondary text */
+  --ink-faint:  #7C8880;  /* tertiary/meta — 4.5:1 on --card at 13px+ */
+  --hairline:   #E5E2D8;  /* borders, dividers */
+  --recess:     #F2F0E9;  /* inset wells, photo placeholders */
+
+  /* ---- Brand ---- */
+  --forest:       #29583F;  /* primary actions — Douglas fir */
+  --forest-deep:  #1D4230;  /* pressed / hover */
+  --forest-tint:  #E9F0EB;  /* selected chips, quiet emphasis */
+
+  /* ---- Condition states (semantic — the core system) ----
+     live:     window firing; card has a live, provenance-backed reason
+     fading:   window closing, or reading older than 2× feed cadence
+               (docs/04 §4 rule 1: "as of <time>", never stale-as-fresh)
+     unknown:  feed down / no live window → seasonal prior only
+     hazard:   hazard-class affordances ONLY (cliff-jump, wild-swim,
+               snow travel), always with assumption-of-risk framing
+     verified: ground truth — confirm verdicts, "verified N days ago" */
+  --live:          #0E6E78;  /* river teal */
+  --live-tint:     #E2F1F0;
+  --fading:        #8F6400;  /* amber, ink-dark for text use */
+  --fading-tint:   #FAF1DC;
+  --unknown:       #66736B;  /* basalt gray */
+  --unknown-tint:  #EDEFEA;
+  --hazard:        #A03D2C;  /* rust — serious, not alarmist */
+  --hazard-tint:   #F8EAE5;
+  --verified:      #2F6E44;  /* fir green */
+  --verified-tint: #E7F1E9;
+
+  /* ---- Type ----
+     Zero webfonts. UI text: system stack. Sensor data: monospace,
+     tabular — every number the evaluator produced wears --font-data. */
+  --font-ui:   -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  --font-data: ui-monospace, "SF Mono", SFMono-Regular, Menlo,
+               Consolas, monospace;
+
+  --text-place:  20px;   /* place name — uppercase, tracked */
+  --text-lg:     18px;   /* section heads, push title */
+  --text-body:   16px;   /* body floor — P5 readability commitment */
+  --text-sub:    15px;   /* affordance strip, provenance body */
+  --text-meta:   13px;   /* hard minimum anywhere in the product */
+  --track-place: 0.05em; /* letterspacing for uppercase place names */
+  --leading:     1.5;
+
+  /* ---- Space & shape (4px grid) ---- */
+  --s1: 4px;  --s2: 8px;  --s3: 12px;  --s4: 16px;
+  --s5: 20px; --s6: 24px; --s8: 32px;
+  --radius-card:  14px;
+  --radius-chip:  999px;  /* chips, badges, filter pills */
+  --radius-ctl:   10px;   /* buttons, inputs */
+  --touch:        44px;   /* min target — one-tap verdicts must be easy */
+  --card-w:       368px;  /* card width at 400px mobile viewport */
+  --border:       1px solid var(--hairline);
+  --shadow-card:  0 1px 2px rgba(28, 43, 37, 0.06),
+                  0 4px 12px rgba(28, 43, 37, 0.05);
+}
+
+/* ---- Base ---- */
+.place-root {
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Sensor data signature: anything the evaluator measured.
+   980 cfs · 1.6 in / 72 h · −1.4 ft tide · 6:42 pm — always this class. */
+.data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.94em;
+  letter-spacing: -0.01em;
+}
+
+/* Place name: quiet all-caps, per the docs/02 §3 card mock */
+.place-name {
+  font-size: var(--text-place);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--track-place);
+  line-height: 1.25;
+}
+
+/* ============================================================
+   Component: safety & stewardship line
+   The foot of every card: permit + Leave No Trace, rendered on
+   the card, never behind a tap (docs/02 §5.4). Hazard-class
+   cards additionally carry the assumption-of-risk block —
+   which only exists when the publication gates pass: a recent
+   verification AND a live satisfied trigger (docs/02 §5.1).
+   Closure notes are place-page-only: excluded places never
+   appear in feeds or tools (docs/02 §5.3).
+   ============================================================ */
+
+body {
+  margin: 0;
+  padding: var(--s4);
+}
+
+.specimen {
+  max-width: var(--card-w);
+  margin: 0 auto;
+}
+
+.specimen-head {
+  padding: var(--s1) var(--s1) var(--s4);
+}
+
+.specimen-head h1 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.specimen-head p {
+  margin: var(--s1) 0 0;
+  font-size: var(--text-sub);
+  line-height: var(--leading);
+  color: var(--ink-soft);
+}
+
+/* One variant = card-styled container + meta caption below */
+.variant {
+  margin: 0 0 var(--s5);
+}
+
+.variant-card {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s4);
+}
+
+.variant figcaption {
+  margin: var(--s2) var(--s1) 0;
+  font-size: var(--text-meta);
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+
+/* ---- The safety line itself ----
+   Anatomy position: last text block of the card, above the two
+   actions — shown here with its top hairline from the card foot. */
+.card-foot {
+  border-top: var(--border);
+  padding-top: var(--s3);
+}
+
+.safety {
+  margin: 0;
+  font-size: var(--text-meta);
+  line-height: var(--leading);
+  color: var(--ink-faint);
+}
+
+/* Permit phrase: quiet emphasis — the legally load-bearing words */
+.permit {
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+/* Timed-entry link-out: forest 600 with trailing arrow.
+   Place links out to the permit system; it never books.
+   Whole row is a ≥44px tap target. */
+.touch-row {
+  min-height: var(--touch);
+  display: flex;
+  align-items: center;
+}
+
+.linkout {
+  color: var(--forest);
+  font-weight: 600;
+}
+
+.linkout .arrow {
+  font-weight: 400;
+}
+
+/* ---- Assumption-of-risk block (hazard-class cards only) ---- */
+.risk {
+  background: var(--hazard-tint);
+  border-radius: var(--radius-ctl);
+  padding: var(--s3);
+  margin-top: var(--s3);
+}
+
+.risk p {
+  margin: 0;
+  font-size: var(--text-sub);
+  line-height: var(--leading);
+  color: var(--hazard);
+}
+
+/* ---- Closure / suppression note (place pages only) ---- */
+.closure {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  column-gap: var(--s1);
+}
+
+.closure-glyph {
+  color: var(--unknown);
+  font-size: var(--text-sub);
+  line-height: 1.35;
+  padding-top: 1px;
+}
+
+.closure-lead {
+  margin: 0;
+  font-size: var(--text-sub);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--unknown);
+}
+
+.closure-detail {
+  margin: var(--s1) 0 0;
+  font-size: var(--text-meta);
+  line-height: var(--leading);
+  color: var(--ink-faint);
+}
+
+/* Bottom note documenting the rules */
+.specimen-note {
+  margin: var(--s2) var(--s1) 0;
+  padding-top: var(--s3);
+  border-top: var(--border);
+  font-size: var(--text-meta);
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+</style>
+<body class="place-root">
+  <main class="specimen">
+
+    <header class="specimen-head">
+      <h1>Safety &amp; stewardship line</h1>
+      <p>The foot of every card: permit and Leave No Trace on the
+         card itself, never behind a tap.</p>
+    </header>
+
+    <figure class="variant">
+      <div class="variant-card">
+        <div class="card-foot">
+          <p class="safety"><span class="permit">Northwest Forest Pass
+             required</span> &middot; pack it out</p>
+        </div>
+      </div>
+      <figcaption>Default — Tamanawas Falls card foot. Permit phrase
+        in ink-soft 600, stewardship in ink-faint; hairline marks its
+        seat above the two actions (docs/02 §5.4).</figcaption>
+    </figure>
+
+    <figure class="variant">
+      <div class="variant-card">
+        <div class="card-foot touch-row">
+          <p class="safety">Timed-use permit required &mdash;
+             <span class="linkout">reserve at recreation.gov
+             <span class="arrow" aria-hidden="true">&#8594;</span></span></p>
+        </div>
+      </div>
+      <figcaption>Timed-entry — Multnomah Falls (RIDB). The link-out
+        wears forest 600 on a 44px tap row. Place links out to the
+        permit system; it never books.</figcaption>
+    </figure>
+
+    <figure class="variant">
+      <div class="variant-card">
+        <div class="card-foot">
+          <p class="safety"><span class="permit">No permit
+             required</span> &middot; pack it out</p>
+          <div class="risk">
+            <p>Conditions change quickly &mdash; a recent verification
+               is not a guarantee. You are responsible for your own
+               judgment.</p>
+          </div>
+        </div>
+      </div>
+      <figcaption>Assumption-of-risk — High Rocks wild-swim card.
+        Hazard tint, hazard ink. This block exists only when the gates
+        pass: a recent verification AND a live satisfied trigger
+        (docs/02 §5.1) — no exceptions. Canonical rendering — every
+        hazard-class surface uses this exact block and copy.</figcaption>
+    </figure>
+
+    <figure class="variant">
+      <div class="variant-card">
+        <div class="closure">
+          <span class="closure-glyph" aria-hidden="true">&#9679;</span>
+          <div>
+            <p class="closure-lead">Seasonal closure &mdash; active
+               restoration</p>
+            <p class="closure-detail">Checked at publish time &mdash;
+               excluded places never appear in any feed or tool. This
+               note renders on the place page only.</p>
+          </div>
+        </div>
+      </div>
+      <figcaption>Closure / suppression — unknown-state colorway,
+        place pages only (docs/02 §5.3). Feeds simply omit the place;
+        no card variant exists for it.</figcaption>
+    </figure>
+
+    <p class="specimen-note">Required on every card &mdash; the safety
+       line is card anatomy, not fine print. Hazard rust is reserved
+       for assumption-of-risk framing; nothing here renders louder
+       than the state it reports.</p>
+
+  </main>
+</body>
+</html>

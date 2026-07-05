@@ -1,0 +1,282 @@
+<!-- @dsCard group="Components" name="Affordance strip" subtitle="Verb · difficulty · duration · flags" viewport="400x700" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Affordance strip — Place design system</title>
+<style>
+/* ============================================================
+   Place — design tokens (source of truth)
+   Direction: "field guide meets instrument panel."
+   Derived from docs/ canon:
+   - docs/02 §3: card anatomy; nothing decorative
+   - docs/00 §1: the provenance line is the brand → sensor data
+     renders in monospace, tabular figures, always
+   - docs/07 §2 P5 + §5: readable type / plain language is a
+     launch commitment, not a Phase-6 retrofit
+   - docs/02 §5: hazard framing, dispersal, no hero pins
+   - docs/04 §9: zero webfonts — system stacks only
+   Every preview in this directory inlines these tokens verbatim.
+   Edit here first; re-sync changed components after.
+   ============================================================ */
+
+:root {
+  /* ---- Paper & ink (field-guide page) ---- */
+  --paper:      #FBFAF6;  /* app background — warm off-white */
+  --card:       #FFFFFF;  /* card surface */
+  --ink:        #1C2B25;  /* primary text — fir-shadow near-black */
+  --ink-soft:   #47564E;  /* secondary text */
+  --ink-faint:  #7C8880;  /* tertiary/meta — 4.5:1 on --card at 13px+ */
+  --hairline:   #E5E2D8;  /* borders, dividers */
+  --recess:     #F2F0E9;  /* inset wells, photo placeholders */
+
+  /* ---- Brand ---- */
+  --forest:       #29583F;  /* primary actions — Douglas fir */
+  --forest-deep:  #1D4230;  /* pressed / hover */
+  --forest-tint:  #E9F0EB;  /* selected chips, quiet emphasis */
+
+  /* ---- Condition states (semantic — the core system) ----
+     live:     window firing; card has a live, provenance-backed reason
+     fading:   window closing, or reading older than 2× feed cadence
+               (docs/04 §4 rule 1: "as of <time>", never stale-as-fresh)
+     unknown:  feed down / no live window → seasonal prior only
+     hazard:   hazard-class affordances ONLY (cliff-jump, wild-swim,
+               snow travel), always with assumption-of-risk framing
+     verified: ground truth — confirm verdicts, "verified N days ago" */
+  --live:          #0E6E78;  /* river teal */
+  --live-tint:     #E2F1F0;
+  --fading:        #8F6400;  /* amber, ink-dark for text use */
+  --fading-tint:   #FAF1DC;
+  --unknown:       #66736B;  /* basalt gray */
+  --unknown-tint:  #EDEFEA;
+  --hazard:        #A03D2C;  /* rust — serious, not alarmist */
+  --hazard-tint:   #F8EAE5;
+  --verified:      #2F6E44;  /* fir green */
+  --verified-tint: #E7F1E9;
+
+  /* ---- Type ----
+     Zero webfonts. UI text: system stack. Sensor data: monospace,
+     tabular — every number the evaluator produced wears --font-data. */
+  --font-ui:   -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  --font-data: ui-monospace, "SF Mono", SFMono-Regular, Menlo,
+               Consolas, monospace;
+
+  --text-place:  20px;   /* place name — uppercase, tracked */
+  --text-lg:     18px;   /* section heads, push title */
+  --text-body:   16px;   /* body floor — P5 readability commitment */
+  --text-sub:    15px;   /* affordance strip, provenance body */
+  --text-meta:   13px;   /* hard minimum anywhere in the product */
+  --track-place: 0.05em; /* letterspacing for uppercase place names */
+  --leading:     1.5;
+
+  /* ---- Space & shape (4px grid) ---- */
+  --s1: 4px;  --s2: 8px;  --s3: 12px;  --s4: 16px;
+  --s5: 20px; --s6: 24px; --s8: 32px;
+  --radius-card:  14px;
+  --radius-chip:  999px;  /* chips, badges, filter pills */
+  --radius-ctl:   10px;   /* buttons, inputs */
+  --touch:        44px;   /* min target — one-tap verdicts must be easy */
+  --card-w:       368px;  /* card width at 400px mobile viewport */
+  --border:       1px solid var(--hairline);
+  --shadow-card:  0 1px 2px rgba(28, 43, 37, 0.06),
+                  0 4px 12px rgba(28, 43, 37, 0.05);
+}
+
+/* ---- Base ---- */
+.place-root {
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Sensor data signature: anything the evaluator measured.
+   980 cfs · 1.6 in / 72 h · −1.4 ft tide · 6:42 pm — always this class. */
+.data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.94em;
+  letter-spacing: -0.01em;
+}
+
+/* Place name: quiet all-caps, per the docs/02 §3 card mock */
+.place-name {
+  font-size: var(--text-place);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--track-place);
+  line-height: 1.25;
+}
+
+/* ============================================================
+   Component: affordance strip
+   The reified Affordance node, rendered (docs/00 §7 · docs/02 §3):
+   activity verb · difficulty · typical duration · dog/kid flags.
+   Sits below the provenance line, above the safety line.
+   Drive time is NOT here — it lives in the card header.
+   ============================================================ */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body { padding: var(--s4); }
+
+.wrap {
+  max-width: var(--card-w);
+  margin: 0 auto;
+}
+
+/* --- specimen chrome (not product UI) --- */
+.spec-head { margin-bottom: var(--s2); }
+.spec-head h1 {
+  font-size: var(--text-body);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.spec-head p {
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+  margin-top: var(--s1);
+}
+.variant-caption {
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+  margin: var(--s5) 0 var(--s2);
+}
+
+/* --- card slice the strip lives on --- */
+.slice {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s4);
+}
+
+/* --- the strip itself --- */
+.strip {
+  font-size: var(--text-sub);
+  line-height: var(--leading);
+  color: var(--ink-soft);
+  overflow-wrap: break-word; /* wraps to two lines gracefully */
+}
+.strip .verb {
+  font-weight: 600;
+  color: var(--ink);
+}
+.strip .sep { color: var(--ink-soft); } /* "·" glued to the prior term */
+.strip.flags { margin-top: var(--s1); }
+
+/* seasonal / situational hazard phrase inside the flags line */
+.strip .hazard-note {
+  color: var(--hazard);
+  font-weight: 500;
+}
+
+/* hazard-class gate chip — inline in the strip, docs/02 §5 rule 1 */
+.chip-hazard {
+  display: inline-block;
+  padding: 0 var(--s2);
+  border-radius: var(--radius-chip);
+  background: var(--hazard-tint);
+  color: var(--hazard);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  line-height: 20px;
+  vertical-align: 1px;
+}
+
+/* provenance + assumption-of-risk framing, required with any
+   hazard styling — never render the chip without this line */
+.hazard-risk {
+  margin-top: var(--s2);
+  padding-top: var(--s2);
+  border-top: var(--border);
+  font-size: var(--text-sub); /* provenance body wears --text-sub (tokens);
+                                 also keeps .data spans ≥13px (15 × 0.94) */
+  color: var(--ink-faint);
+}
+.hazard-risk .who { color: var(--ink-soft); }
+
+/* --- usage notes (specimen documentation) --- */
+.notes {
+  margin-top: var(--s6);
+  background: var(--recess);
+  border-radius: var(--radius-ctl);
+  padding: var(--s3) var(--s4);
+}
+.notes h2 {
+  font-size: var(--text-meta);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+  margin-bottom: var(--s2);
+}
+.notes li {
+  list-style: none;
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+  padding-left: var(--s3);
+  position: relative;
+}
+.notes li + li { margin-top: var(--s1); }
+/* .data inside 13px meta lines would compute to 12.2px via its 0.94em —
+   pin it to the 13px hard floor here */
+.notes .data { font-size: var(--text-meta); }
+.notes li::before {
+  content: "·";
+  position: absolute;
+  left: 0;
+  color: var(--ink-faint);
+}
+</style>
+</head>
+<body class="place-root">
+<div class="wrap">
+
+  <header class="spec-head">
+    <h1>Affordance strip</h1>
+    <p>verb · difficulty · duration · flags — one line of the card, straight from the reified Affordance node</p>
+  </header>
+
+  <p class="variant-caption">a · full — Tamanawas Falls, waterfall-view</p>
+  <div class="slice">
+    <p class="strip"><span class="verb">waterfall-view</span><span class="sep">&nbsp;·</span> moderate<span class="sep">&nbsp;·</span> <span class="data">~3&nbsp;h</span> round trip</p>
+    <p class="strip flags">dogs ok (leash)<span class="sep">&nbsp;·</span> kids ok<span class="sep">&nbsp;·</span> <span class="hazard-note">icefall hazard in winter</span></p>
+  </div>
+
+  <p class="variant-caption">b · everyday — Springville Trailhead, weekday walk</p>
+  <div class="slice">
+    <p class="strip"><span class="verb">walk</span><span class="sep">&nbsp;·</span> easy<span class="sep">&nbsp;·</span> <span class="data">~45&nbsp;min</span></p>
+    <p class="strip flags">dogs ok<span class="sep">&nbsp;·</span> stroller ok</p>
+  </div>
+
+  <p class="variant-caption">c · hazard-class — High Rocks, wild-swim</p>
+  <div class="slice">
+    <p class="strip"><span class="verb">wild-swim</span><span class="sep">&nbsp;·</span> <span class="chip-hazard">hazard-gated</span><span class="sep">&nbsp;·</span> <span class="data">~2&nbsp;h</span></p>
+    <p class="hazard-risk">gauge <span class="data">14210000</span> at <span class="data">980&nbsp;cfs</span>, under the <span class="data">1,200</span> threshold · verified Sun by <span class="who">@gorge_amy</span> — conditions change; you are responsible for your own judgment.</p>
+  </div>
+
+  <p class="variant-caption">d · accessibility-forward — flat, paved, benches (story 11)</p>
+  <div class="slice">
+    <p class="strip"><span class="verb">walk</span><span class="sep">&nbsp;·</span> flat, paved<span class="sep">&nbsp;·</span> <span class="data">2&nbsp;mi</span><span class="sep">&nbsp;·</span> benches</p>
+  </div>
+
+  <div class="notes">
+    <h2>Usage</h2>
+    <ul>
+      <li>The verb carries the only 600 weight; every other term stays 15px ink-soft. Hierarchy through type, not chrome.</li>
+      <li>Dog / kid flags are first-class Affordance attributes — 60.6% of Portland households own a pet — never an edge case.</li>
+      <li>Durations and distances are quantities → monospace <span class="data">.data</span>; difficulty words are claim attributes → plain UI type.</li>
+      <li>The hazard-gated chip never renders without provenance and assumption-of-risk framing (docs/02 §5).</li>
+      <li>Drive time is not part of this strip — it lives in the card header.</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>
