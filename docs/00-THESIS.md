@@ -38,7 +38,7 @@ Ranked, structural first. A moat here means: an asset that compounds with use an
 
 **M4 — Temporal ranking exhaust.** Every feed impression, "I'm going" tap, and Sunday verdict is a labeled example of "condition vector X made place Y good/bad on date Z" — joint observations of conditions *and* outcomes at decision time. Incumbents' static surfaces structurally cannot emit these labels; collecting them requires making a temporal feed the primary surface, which is exactly what the MVP does.
 
-**M5 — Substitution and pairing edges (later).** QUIET_ALTERNATIVE_TO (Elowah Falls ← Multnomah when crowded), PAIRS_WITH_IN_WINDOW (sunrise viewpoint + swim + diner = one 4-hour loop), learned from trip acceptances and co-visits. This is what eventually powers the Trip Builder — which is deferred precisely because it exercises the graph without feeding it (see the deferral table in [02-PRODUCT.md](02-PRODUCT.md)).
+**M5 — Substitution and pairing edges (accumulating from launch, rendered later).** QUIET_ALTERNATIVE_TO (Elowah Falls ← Multnomah when crowded), PAIRS_WITH_IN_WINDOW (sunrise viewpoint + swim + diner = one 4-hour loop), learned from trip acceptances, co-visits, and — from launch — "nearby after" module taps ([07-USERS.md](07-USERS.md) §4). This is what eventually powers the Trip Builder — which is deferred precisely because it exercises the graph without feeding it (see the deferral table in [02-PRODUCT.md](02-PRODUCT.md)).
 
 **M6 — The conditional taste graph (later).** User × affordance × condition preference labels: "will drive 90 minutes for larches, not for a viewpoint; hikes with a reactive dog." Worthless to a competitor without the condition layer to index into — which is why it stacks *on top of* M1–M4 rather than substituting for them.
 

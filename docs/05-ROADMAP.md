@@ -53,7 +53,7 @@ The plan's original canonical date — swim tool live 3 weeks before July 4 — 
 - **~40 swim bindings forged in parallel (July–September 2026, committed):** the private founder-only beta on the Clackamas/Sandy corridor — bindings-forging only, no public surface; these enter Phase 5 verified through summer 2026 and tightened again in spring 2027.
 - Founder verification tour: top 30–50 places ground-truthed in person (the gold calibration set); every visit logged as a Verification with auto conditions snapshot.
 - ToS, assumption-of-risk waiver language, and sensitive-sites exclusion list reviewed **before** launch, not after.
-- **Depth bar enforced:** 150 places with dense, condition-wired claims beats 400 shallow. Cut deeper, not wider.
+- **Depth bar enforced:** 150 places with dense, condition-wired claims beats 400 shallow. Cut deeper, not wider — and "dense" includes the everyday layer: Forest Park's trailheads get parking/surface/duration/dog-flag claims coverage, not just the condition exotica ([07-USERS.md](07-USERS.md) §5).
 
 **MOAT CHECKPOINT 1:** *The bindings exist and the log is live.* 60 waterfall bindings forged, ~40 swim bindings forged privately (place × activity → named gauge + learned threshold — joins that appear in no corpus); verification log running with founder as verifier #1; 30–50 places founder-ground-truthed; every claim carries provenance, observed_date, and extractor version for cheap re-extraction as models improve.
 
@@ -72,7 +72,7 @@ The plan's original canonical date — swim tool live 3 weeks before July 4 — 
 **Deliverables:**
 - The seasonal tool graduates into the four-surface PWA ([02-PRODUCT.md](02-PRODUCT.md)): "This Weekend" feed ranked by `now_score`, claim-based place pages, want-to/been/loved taps where **saves are standing queries**, and the Sunday 6 pm verification push (max two one-tap questions + next weekend's top card — the moat action and the retention action in one notification).
 - Winter keeps the cadence honest: SNOTEL/NWAC-bound snowshoe and frozen-falls windows added so the feed has live reasons in January, not just October.
-- 10 named power verifiers recruited from Reddit/Oregon Hikers — early access + named provenance credit, the only "social" feature at launch (badges deferred: badge-hunting pollutes ground truth).
+- 10 named power verifiers recruited from Reddit/Oregon Hikers — and explicitly courting retired weekday hikers, who author a disproportionate share of trip reports and hike when the crowds don't ([07-USERS.md](07-USERS.md) §2). Early access + named provenance credit, the only "social" feature at launch (badges deferred: badge-hunting pollutes ground truth).
 - Bindings grow toward the ~500 year-one target; decay parameters start being fit from the verification log.
 
 **GO/NO-GO — First-100 gate:** at 100 users, **≥30% of tracked visits produce a verification**. If not, the loop is broken — fix the Sunday push mechanics and card provenance before spending a single hour on growth. If the gate hasn't held by March 2027, it wins for PWA surfaces — feed and push features freeze — but the free seasonal tools (Phases 4–5) proceed on their windows, because they are acquisition surfaces that also feed bindings; the MCP-within-six-months clock is keyed to public launch #1 and does not slide.

@@ -36,6 +36,9 @@ Cards ranked by `now_score = base_quality × Π(active condition multipliers) ×
 
 Feed rules, committed:
 
+- **Everyday base layer first ([07-USERS.md](07-USERS.md) §1):** nearby everyday affordances (Forest Park trailheads, walks, viewpoints) with dense claims and light condition annotation — mud state from 72-h precip, daylight remaining vs. typical duration — are always rankable; condition-magic cards rank *on top* when their windows fire. Feed-sourced light conditions count as live reasons for the quality gate; crowd priors annotate but don't count until verification exhaust makes them live.
+- **Generic-intent browse:** typing an activity verb ("trail," "swim," "walk") filters the feed to the everyday ranking for that verb — a feed filter at launch scale, not a search engine (NL search stays deferred, §6).
+
 - **Quality gate: ≥60% of served cards must carry a live condition reason.** If the evaluator can't justify 60% of the feed with real-time provenance, the feed shortens. A short honest feed beats a long static one — a static feed is AllTrails, and AllTrails already exists.
 - **Every card shows its provenance line** — a live condition reason (source + freshness) where the evaluator has one; static claim provenance plus last-verified date where it doesn't. No card ships with a bare rank.
 - **Dispersal by design:** the feed is always "ten good options ranked by conditions," never a single hero pin (the Blue Pool failure mode). Ranking spreads load; virality concentrates it.
@@ -46,6 +49,8 @@ Feed rules, committed:
 A place page is a rendering of the graph, not a wiki article: the place's affordances (each with difficulty, typical duration, dog/kid flags), each affordance's **current condition state** (predicate result, live sensor value, and the binding it comes from), and each claim's provenance and last-verified date. High Rocks' page says: *wild-swim · currently swimmable · Clackamas @ Estacada (14210000) at 980 cfs, threshold <1,200 · last verified June 27 at 1,010 cfs · 3 sources.* Hazard-class affordances (cliff-jump, wild-swim, snow travel) render only when the publication gates in [01-EXPERIENCE-GRAPH.md](01-EXPERIENCE-GRAPH.md) pass, always with assumption-of-risk framing (§5 below).
 
 Every claim rendered anywhere carries one-tap **confirm / deny / changed** controls — the page is a verification surface, not just a read surface.
+
+Place pages and the "I'm going" confirmation also carry the **"nearby after" module** ([07-USERS.md](07-USERS.md) §4): pairing nodes — brewery, diner, soaking pool — attached via PAIRS_WITH edges, never as standalone commercial destinations. Every tap on a suggestion writes a pairing observation, so this module *feeds* moat M5 years before the Trip Builder renders it.
 
 *Losing alternative:* prose descriptions and star ratings — unstructured text feeds nothing back into the graph, and ratings without conditions are noise ("3 stars" in August flood vs. July low water are different places).
 

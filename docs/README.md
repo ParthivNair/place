@@ -16,6 +16,7 @@ Read in order the first time; afterwards each stands alone.
 | 04 | [Technical Architecture — From main.py to the Graph](04-ARCHITECTURE.md) | The honest starting point, the storage decision, the system diagram, the condition evaluator (the wedge component) with failure rules, the API surface, the PR-sized migration sequence, and the <$50/month deployment. |
 | 05 | [Roadmap — Seasons, Moat Checkpoints & Gates](05-ROADMAP.md) | **The calendar of record.** Phases keyed to real seasonal windows (October 2026 waterfall tool = public launch #1; swim tool June 2027), a moat checkpoint per phase, go/no-go gates, the transposition rule, and the year-2 horizon. |
 | 06 | [Competitive Landscape — Keys, Locks & Bright Lines](06-COMPETITIVE-LANDSCAPE.md) | Per-incumbent analysis (primary-key lock-in), the AllTrails-extraction threat and its counter, the generic-LLM threat and the tool position (MCP), structural-vs-cosmetic advantages, and how Place dies. |
+| 07 | [Users — Personas, Frequency & the Everyday Layer](07-USERS.md) | Evidence-based persona breakdown, the frequency/differentiation split (everyday queries retain, condition magic converts), refined ranked user stories, the pairing-node resolution of "Beer," and the adoption-wave analysis. |
 
 Two rules the set lives by:
 
