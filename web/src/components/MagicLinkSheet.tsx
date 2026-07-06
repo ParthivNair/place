@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { requestMagicLink } from "@/lib/api";
+import { readKnownEmail } from "@/lib/local";
 import { PrimaryButton, TertiaryButton } from "./Buttons";
 import styles from "./MagicLinkSheet.module.css";
 
@@ -31,9 +32,26 @@ export function MagicLinkSheet({
   const [resent, setResent] = useState(false);
   const [sendFailed, setSendFailed] = useState(false);
   const [resendIn, setResendIn] = useState(RESEND_AFTER_S);
+  const [returning, setReturning] = useState(false);
+  const prefilled = useRef(false);
   const fieldRef = useRef<HTMLInputElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const titleId = useId();
+
+  /* Returning-user variant: a verify completed on this device leaves the
+     email behind (lib/local) — the ask prefills and softens. Device
+     memory is the only recognition signal: POST /auth/magic-link answers
+     202 for every address by design (no account enumeration), so the
+     server can't say "recognized" (flagged API-shape note). */
+  useEffect(() => {
+    if (!open || prefilled.current) return;
+    prefilled.current = true;
+    const known = readKnownEmail();
+    if (known) {
+      setReturning(true);
+      setEmail((current) => (current === "" ? known : current));
+    }
+  }, [open]);
 
   // The clock keeps running while the sheet is closed — reopening must not
   // hand back a reset 60s wait.
@@ -47,13 +65,24 @@ export function MagicLinkSheet({
     return () => clearInterval(timer);
   }, [counting]);
 
+  /* Capture phase, and the Escape STOPS here. This sheet stacks over the
+     triggering sheet (decision 11 — the GoingSheet stays mounted under it
+     with its own document-level Escape handler), and a keypress bubbling
+     target → document → window would fire both handlers in one dispatch:
+     the going sheet would unmount mid-interception and the parked retry
+     would land against nothing, destroying the very intent the stack
+     exists to preserve. Window capture runs before every document
+     listener, so the topmost sheet closes alone — the retry then resumes
+     inside the still-mounted sheet, same as "Not now". */
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      onClose();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [open, onClose]);
 
   useEffect(() => {
@@ -103,6 +132,11 @@ export function MagicLinkSheet({
         <h2 className={styles.title} id={titleId} tabIndex={-1} ref={titleRef}>
           {phase === "ask" ? pitch : "Check your email"}
         </h2>
+        {phase === "ask" && returning ? (
+          <p className={styles.soft}>
+            Welcome back — same one-tap link, still no password.
+          </p>
+        ) : null}
         {phase === "ask" ? (
           <form className={styles.form} onSubmit={handleSubmit}>
             <input

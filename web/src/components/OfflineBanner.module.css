@@ -1,0 +1,20 @@
+/* Offline banner (§9 state a) — the one cross-cutting chrome. Amber
+   "fading" colorway: cached content is old-but-honest ("as of <time>"),
+   never unknown-as-false and never error-red. Sticky just under the 56px
+   app header (Header.module.css) so the state stays declared while the
+   cached page scrolls; z-index sits below the header (10) and far below
+   sheets (20). */
+
+.banner {
+  position: sticky;
+  top: 56px;
+  z-index: 9;
+  margin-bottom: var(--s3);
+  padding: var(--s2) var(--s3);
+  background: var(--fading-tint);
+  border: var(--border);
+  border-radius: var(--radius-ctl);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  color: var(--fading);
+}

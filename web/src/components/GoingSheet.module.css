@@ -83,19 +83,10 @@
   outline-offset: 2px;
 }
 
-/* Revealed only by "another day →" — never a form-first experience. 16px
-   body size also keeps iOS Safari from zooming the control on focus. */
-.dateInput {
-  display: block;
+/* Revealed only by "another day →" — more of the same quiet chips, never
+   a date-picker form (decision 9). */
+.moreDays {
   margin-top: var(--s2);
-  min-height: var(--touch);
-  padding: 0 var(--s3);
-  background: var(--card);
-  border: var(--border);
-  border-radius: var(--radius-ctl);
-  font-family: var(--font-ui);
-  font-size: var(--text-body);
-  color: var(--ink);
 }
 
 .conditions {
@@ -131,6 +122,16 @@
   color: var(--fading);
 }
 
+.isUnknown .glyph {
+  color: var(--unknown);
+}
+
+/* Stacked condition rows: the reason plus any "live … unavailable" lines
+   (§9 state b) breathe by a hair, mirroring ProvenanceLine's row gap. */
+.reason + .reason {
+  margin-top: var(--s1);
+}
+
 .nearby {
   margin-top: var(--s4);
 }
@@ -150,8 +151,22 @@
   color: var(--fading);
 }
 
+/* Two actions: filled primary + quiet Directions tertiary. */
 .actions {
   margin-top: var(--s4);
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+
+.actions > :first-child {
+  flex: 1;
+}
+
+/* Quiet doorway to /sunday under the saved receipt (decision 15). */
+.sundayLink {
+  display: flex;
+  margin-left: calc(-1 * var(--s2));
 }
 
 /* Success replaces the primary in the same slot; min-height 48px holds the

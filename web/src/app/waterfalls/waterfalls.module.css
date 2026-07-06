@@ -1,0 +1,227 @@
+/* Seasonal ranker (Surface 4, route /waterfalls) — public launch #1.
+   Anatomy from design/surfaces/seasonal-ranker.html (.tool / .tool-head /
+   .rank-row / .row-driver / .row-prov), held to the five type sizes
+   (20/18/16/15/13 — the synced card's 17/14px predate the constraint
+   block and are normalized here). Tokens only; hairline borders are the
+   only chrome. */
+
+.page {
+  /* Mobile: the .shell column as-is. Desktop: the root element carries
+     data-shell-wide and globals.css widens the shell itself to the
+     sanctioned ~680px single centered column (decision 13) — no
+     negative-margin breakout, and fixed-position sheets keep the
+     viewport as their containing block. */
+}
+
+/* ---- Tool shell ---- */
+
+.tool {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+/* ---- Title treatment — the screenshot IS the acquisition ---- */
+
+.toolHead {
+  padding: var(--s5) var(--s4) var(--s4);
+  border-bottom: var(--border);
+}
+
+@media (min-width: 720px) {
+  .toolHead {
+    padding: var(--s6) var(--s6) var(--s5);
+  }
+}
+
+.title {
+  font-size: var(--text-place);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.sub {
+  margin-top: var(--s1);
+  font-size: var(--text-meta);
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+/* .data is 0.94em; inside 13px meta lines pin it to the 13px floor
+   (design/surfaces/seasonal-ranker.html precedent). */
+.sub :global(.data),
+.prov :global(.data),
+.how :global(.data) {
+  font-size: var(--text-meta);
+}
+
+/* ---- Honest count line ---- */
+
+.count {
+  padding: var(--s3) var(--s4);
+  border-bottom: var(--border);
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+}
+
+@media (min-width: 720px) {
+  .count {
+    padding-inline: var(--s6);
+  }
+}
+
+/* ---- Ranked list ---- */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+  min-height: var(--touch);
+  padding: var(--s3) var(--s4);
+  border-bottom: var(--border);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+@media (min-width: 720px) {
+  .row {
+    padding-inline: var(--s6);
+  }
+}
+
+.rank {
+  flex: none;
+  width: 20px;
+  padding-top: 2px;
+  font-size: var(--text-body);
+  font-weight: 500;
+  text-align: right;
+  color: var(--ink-faint);
+}
+
+.rowMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+/* Live flow driver: glyph + .data reading + claim word + drive time. */
+.driver {
+  margin-top: var(--s1);
+  font-size: var(--text-sub);
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.glyph {
+  margin-right: 2px;
+}
+
+.state {
+  font-weight: 600;
+}
+
+.sep {
+  color: var(--ink-faint);
+}
+
+/* State colorways — glyph + claim word only; readings stay ink-soft. */
+.isLive .glyph,
+.isLive .state {
+  color: var(--live);
+}
+
+.isFading .glyph,
+.isFading .state {
+  color: var(--fading);
+}
+
+.isUnknown .glyph,
+.isUnknown .state {
+  color: var(--unknown);
+}
+
+/* Provenance meta line: source · last-verified · permit (13px floor). */
+.prov {
+  margin-top: var(--s1);
+  font-size: var(--text-meta);
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+
+/* "live flow unavailable" — degraded is a state, never "conditions bad". */
+.unavailable {
+  color: var(--unknown);
+  font-weight: 600;
+}
+
+.check {
+  color: var(--verified);
+}
+
+.verifier {
+  font-weight: 600;
+  color: var(--forest);
+}
+
+/* Permit phrase — quiet emphasis, the legally load-bearing words
+   (SafetyLine .permit idiom). */
+.permit {
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+/* Post-save confirmed row: the ♥ is filled by SaveHeart; this line makes
+   the standing query visible (a save is a sensor, docs/02 §2). */
+.watching {
+  margin-top: var(--s1);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  color: var(--forest);
+}
+
+/* ---- Footer: methodology + stewardship + assumption of risk ---- */
+
+.foot {
+  margin-top: var(--s4);
+  padding: 0 var(--s4);
+}
+
+@media (min-width: 720px) {
+  .foot {
+    padding: 0 var(--s6);
+  }
+}
+
+.how {
+  font-size: var(--text-meta);
+  line-height: var(--leading);
+  color: var(--ink-faint);
+}
+
+.howLead {
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+/* SafetyLine brings its own hairline top border; give it a seat. */
+.legal {
+  margin-top: var(--s3);
+}

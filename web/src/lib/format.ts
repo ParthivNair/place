@@ -1,10 +1,53 @@
 /* Display formatters for canon copy: "41 min drive", "as of Tue 4pm",
-   "verified 6 days ago by @gorge_amy", "~2.5 h". Numbers these produce are
-   measured values — render them inside a .data span. */
+   "verified 6 days ago by @gorge_amy", "~2.5 h". Measured values (values
+   with units, durations, clock times, station ids) render inside a .data
+   span — pass composed strings through withData below. Calendar dates
+   ("Jun 27", "May 12") are copy, not sensor readings: they stay in the UI
+   font (ClaimRow meta-line precedent). */
 
+import { createElement, type ReactNode } from "react";
 import type { VerdictLiteral } from "./types";
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+/* Measured values wear the global .data class (docs/00 §1): unit-bearing
+   numbers, comparator thresholds, ranges, clock times, and long station
+   ids. Claim words stay in the UI font; unmatched text renders verbatim —
+   the server composes reason.text. No lookbehind (Safari < 16.4 throws at
+   construction). Single source: ProvenanceLine, GoingSheet, AlertCard,
+   the place page, and /waterfalls all import this — the .data brand rule
+   must not drift across surfaces. */
+const NUM = "[−-]?\\d[\\d,.]*";
+const RANGE = `${NUM}(?:\\s?[–—-]\\s?${NUM})?`;
+const UNIT =
+  "(?:cfs|°[cf]|ft|in|mi|km|mm|cm|hours?|hrs?|h|min(?:ute)?s?|days?|weeks?|%)";
+const MEASURE = new RegExp(
+  [
+    `[<>≤≥~]\\s?${RANGE}(?:\\s?${UNIT})?(?![a-z0-9])`,
+    `${RANGE}\\s?${UNIT}(?![a-z0-9])`,
+    `\\d{1,2}:\\d{2}(?:\\s?(?:am|pm))?`,
+    `\\d{1,2}\\s?(?:am|pm)(?![a-z0-9])`,
+    `\\d{5,}`,
+  ].join("|"),
+  "gi",
+);
+
+export function withData(text: string): ReactNode {
+  const nodes: ReactNode[] = [];
+  let cursor = 0;
+  for (const match of text.matchAll(MEASURE)) {
+    const start = match.index ?? 0;
+    if (start > cursor) nodes.push(text.slice(cursor, start));
+    // createElement, not JSX — this file stays format.ts so every display
+    // formatter lives in the one module surfaces already import.
+    nodes.push(
+      createElement("span", { key: start, className: "data" }, match[0]),
+    );
+    cursor = start + match[0].length;
+  }
+  if (cursor === 0) return text;
+  if (cursor < text.length) nodes.push(text.slice(cursor));
+  return nodes;
+}
+
 const MONTHS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
@@ -12,38 +55,116 @@ const MONTHS = [
 
 const pad2 = (n: number): string => String(n).padStart(2, "0");
 
+/* Clock and calendar renderings of instants are pinned to Pacific time,
+   never the viewer's zone: conditions are Portland phenomena ("as of Fri
+   4pm" means 4pm at the gauge — the canon mock composes exactly that from
+   23:00Z), and /waterfalls SERVER-renders these strings, so a UTC deploy
+   and a Portland visitor must produce byte-identical HTML or React logs a
+   hydration error and re-renders the whole SEO page client-side. */
+const PACIFIC = "America/Los_Angeles";
+
+const CLOCK_PARTS = new Intl.DateTimeFormat("en-US", {
+  timeZone: PACIFIC,
+  weekday: "short",
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+});
+
+// en-CA renders "2026-07-05" — Pacific calendar parts without hand math.
+const YMD_PARTS = new Intl.DateTimeFormat("en-CA", {
+  timeZone: PACIFIC,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+function pacificClock(d: Date): { weekday: string; clock: string } {
+  const parts: Partial<Record<Intl.DateTimeFormatPartTypes, string>> = {};
+  for (const p of CLOCK_PARTS.formatToParts(d)) parts[p.type] = p.value;
+  const ampm = (parts.dayPeriod ?? "").toLowerCase();
+  const clock =
+    parts.minute === "00"
+      ? `${parts.hour}${ampm}`
+      : `${parts.hour}:${parts.minute}${ampm}`;
+  return { weekday: parts.weekday ?? "", clock };
+}
+
+function pacificYmd(d: Date): [number, number, number] {
+  const [y, m, day] = YMD_PARTS.format(d).split("-").map(Number);
+  return [y || 0, m || 1, day || 1];
+}
+
 // Client-side heuristic until the API serves drive time (UI-DRAFT-BRIEF
 // decision 5 — flagged API gap): minutes ≈ distance_km / 1.44, rounded to
-// the nearest 5, floor 5.
+// the nearest minute, floor 5. Exact rounding keeps the canon copy intact:
+// Tamanawas at 59.0 km renders "41 min drive" verbatim (constraint block) —
+// rounding to 5s would quietly rewrite canon mock data.
 export function fmtDriveMinutes(distanceKm: number): string {
-  const minutes = Math.max(5, Math.round(distanceKm / 1.44 / 5) * 5);
+  const minutes = Math.max(5, Math.round(distanceKm / 1.44));
   return `${minutes} min drive`;
 }
 
-function fmtClockTime(d: Date): string {
-  const hours = d.getHours() % 12 || 12;
-  const minutes = d.getMinutes();
-  const ampm = d.getHours() >= 12 ? "pm" : "am";
-  return minutes === 0 ? `${hours}${ampm}` : `${hours}:${pad2(minutes)}${ampm}`;
+/* "7:05am" — the bare Pacific clock time (/waterfalls' "updated this
+   morning at" line). Exported, unlike its old viewer-zone private
+   ancestor: the Pacific pin must stay single-source. */
+export function fmtClockTime(iso: string): string {
+  return pacificClock(new Date(iso)).clock;
 }
 
 // Freshness honesty (docs/04 §4 rule 1): stale readings render "as of Tue 4pm".
 export function fmtAsOf(iso: string): string {
-  const d = new Date(iso);
-  return `as of ${WEEKDAYS[d.getDay()]} ${fmtClockTime(d)}`;
+  const { weekday, clock } = pacificClock(new Date(iso));
+  return `as of ${weekday} ${clock}`;
+}
+
+/* One rule for the stamp everywhere a text-composed reason renders (feed
+   ProvenanceLine, place-page condition lead, going-sheet conditions —
+   §9 state c, designed once): the API composes "(as of …)" into
+   reason.text where it applies (cheat sheet), so append a stamp ONLY
+   when the text carries none — one stamp, never two. Fresh reasons
+   return null unless forced: the offline shell (§9a) stamps EVERY
+   reading, because nothing can be re-evaluated without a network and
+   "fresh" only describes the moment it was cached. /waterfalls renders
+   the provenance READING, not the composed text, so its stamp can't
+   collide and it deliberately doesn't route through here. */
+export function staleAsOf(
+  reason: {
+    text: string;
+    fresh: boolean;
+    as_of: string | null;
+    evaluated_at?: string | null;
+  },
+  force = false,
+): string | null {
+  if (reason.fresh && !force) return null;
+  if (/\bas of\b/i.test(reason.text)) return null;
+  const at = reason.as_of ?? reason.evaluated_at ?? null;
+  return at === null ? null : fmtAsOf(at);
+}
+
+function pacificDayStamp(d: Date): number {
+  const [y, m, day] = pacificYmd(d);
+  return Date.UTC(y, m - 1, day);
 }
 
 function calendarDaysAgo(iso: string, now: Date): number {
-  const d = new Date(iso);
-  const then = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  return Math.round((today - then) / 86_400_000);
+  return Math.round(
+    (pacificDayStamp(now) - pacificDayStamp(new Date(iso))) / 86_400_000,
+  );
 }
 
-// "verified 6 days ago by @gorge_amy" — named provenance credit is the only
-// recognition in the product.
-export function fmtVerified(lastVerifiedAt: string, verifiedBy?: string | null): string {
-  const now = new Date();
+/* "verified 6 days ago by @gorge_amy" — named provenance credit is the
+   only recognition in the product. `now` defaults to the render moment;
+   pass a generation instant where the string must be SSR-deterministic:
+   /waterfalls renders relative to its fixture's generated_at, so a
+   statically prerendered "verified today" can't rot into tomorrow's
+   hydration mismatch. */
+export function fmtVerified(
+  lastVerifiedAt: string,
+  verifiedBy?: string | null,
+  now: Date = new Date(),
+): string {
   const days = calendarDaysAgo(lastVerifiedAt, now);
   let when: string;
   if (days <= 0) {
@@ -53,9 +174,9 @@ export function fmtVerified(lastVerifiedAt: string, verifiedBy?: string | null):
   } else if (days < 14) {
     when = `${days} days ago`;
   } else {
-    const d = new Date(lastVerifiedAt);
-    when = `${MONTHS[d.getMonth()]} ${d.getDate()}`;
-    if (d.getFullYear() !== now.getFullYear()) when += `, ${d.getFullYear()}`;
+    const [y, m, day] = pacificYmd(new Date(lastVerifiedAt));
+    when = `${MONTHS[m - 1]} ${day}`;
+    if (y !== pacificYmd(now)[0]) when += `, ${y}`;
   }
   const by = verifiedBy ? ` by @${verifiedBy.replace(/^@/, "")}` : "";
   return `verified ${when}${by}`;

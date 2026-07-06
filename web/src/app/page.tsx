@@ -9,12 +9,22 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { FeedCard, FeedResponse } from "@/lib/types";
 import { ApiError, addSave, getFeed, postEvent, removeSave } from "@/lib/api";
+import {
+  NEIGHBORHOOD_KEY,
+  WELCOME_DONE_KEY,
+  WELCOME_SEEN_KEY,
+  clearPendingIntent,
+  readLocal,
+  writeLocal,
+  writePendingIntent,
+} from "@/lib/local";
 import { TertiaryButton } from "@/components/Buttons";
 import { ExperienceCard } from "@/components/ExperienceCard";
 import { FeedFilters } from "@/components/FeedFilters";
 import type { FeedFilterState } from "@/components/FeedFilters";
 import { GoingSheet } from "@/components/GoingSheet";
 import { MagicLinkSheet } from "@/components/MagicLinkSheet";
+import { Toast, errorToastCopy, useToast } from "@/components/Toast";
 import styles from "./page.module.css";
 
 /* Value before asks (docs/07): the feed is useful signed-out and
@@ -32,7 +42,7 @@ const GOING_PITCH =
   "Sign in to declare the trip — we’ll check conditions before you go.";
 
 type FeedStatus = "loading" | "ready" | "error";
-type LocStatus = "idle" | "locating" | "granted" | "unavailable";
+type LocStatus = "idle" | "locating" | "granted" | "unavailable" | "manual";
 
 export default function Home() {
   const router = useRouter();
@@ -53,8 +63,28 @@ export default function Home() {
   const [goingCard, setGoingCard] = useState<FeedCard | null>(null);
   const [magicOpen, setMagicOpen] = useState(false);
   const [magicPitch, setMagicPitch] = useState<string | undefined>(undefined);
+  /* Manual neighborhood fallback (state e): the name only labels the
+     origin line — no geocoding endpoint exists yet (flagged API gap;
+     shared with /welcome via NEIGHBORHOOD_KEY), so ranking stays on the
+     Portland default until the backend can resolve it. */
+  const [neighborhood, setNeighborhood] = useState<string | null>(null);
+  const [neighborhoodDraft, setNeighborhoodDraft] = useState("");
+  const [welcomeBanner, setWelcomeBanner] = useState(false);
+  // §9 state (e): the shared toast treatment — never a per-page one-off.
+  const { toast, showToast } = useToast();
+  const savedDay = useRef<string | null>(null);
   const pendingSave = useRef<FeedCard | null>(null);
+  const pendingGoing = useRef<(() => void) | null>(null);
   const reqSeq = useRef(0);
+
+  useEffect(() => {
+    setNeighborhood(readLocal(NEIGHBORHOOD_KEY));
+    // First-run doorway to /welcome (decision 12): a one-time quiet line,
+    // never a gate — dismissing it is as final as finishing onboarding.
+    setWelcomeBanner(
+      !readLocal(WELCOME_DONE_KEY) && !readLocal(WELCOME_SEEN_KEY),
+    );
+  }, []);
 
   // The typed verb filters the visible cards instantly; the API refetch
   // (activity param) trails it so keystrokes don't fan out into requests.
@@ -104,7 +134,7 @@ export default function Home() {
   const requestLocation = () => {
     // The permission ask happens here, on tap — never on load.
     if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
-      setLocStatus("unavailable");
+      setLocStatus("manual");
       return;
     }
     setLocStatus("locating");
@@ -113,9 +143,26 @@ export default function Home() {
         setOrigin({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         setLocStatus("granted");
       },
-      () => setLocStatus("unavailable"),
+      // Denial fallback (state e): manual neighborhood entry, mirroring
+      // /welcome's graceful path — never a silent dead end.
+      () => setLocStatus("manual"),
       { timeout: 10_000, maximumAge: 300_000 },
     );
+  };
+
+  const confirmNeighborhood = () => {
+    const name = neighborhoodDraft.trim();
+    if (!name) return;
+    writeLocal(NEIGHBORHOOD_KEY, name);
+    setNeighborhood(name);
+    setLocStatus("unavailable");
+  };
+
+  const showSavedToast = () => {
+    const day = savedDay.current;
+    savedDay.current = null;
+    if (!day) return;
+    showToast(`Saved for ${day} — we’ll ask two quick questions Sunday evening.`);
   };
 
   const setSaved = (affordanceId: string, on: boolean) => {
@@ -131,24 +178,45 @@ export default function Home() {
     setSaved(card.affordance_id, true); // optimistic ♥
     try {
       await addSave({ affordance_id: card.affordance_id, kind: "want_to" });
+      // A 401 earlier parked this intent for /auth/verify; the same-tab
+      // retry just landed it — don't complete it twice.
+      if (isRetry) clearPendingIntent();
     } catch (err) {
       setSaved(card.affordance_id, false);
-      if (!isRetry && err instanceof ApiError && err.status === 401) {
-        // Feed is public; only ♡ intercepts to auth. The intent is kept
-        // and retried once when the sheet closes.
-        pendingSave.current = card;
-        setMagicPitch(SAVE_PITCH);
-        setMagicOpen(true);
+      if (err instanceof ApiError && err.status === 401) {
+        if (!isRetry) {
+          // Feed is public; only ♡ intercepts to auth. The intent is kept
+          // twice (decision 11): in-memory for the same-tab retry when the
+          // sheet closes, and in storage for /auth/verify, which opens from
+          // the email in a fresh tab.
+          pendingSave.current = card;
+          writePendingIntent({
+            type: "save",
+            affordance_id: card.affordance_id,
+            kind: "want_to",
+            place_name: card.place_name,
+          });
+          setMagicPitch(SAVE_PITCH);
+          setMagicOpen(true);
+        }
+        // Post-auth retry still 401 ("Not now"): the ♥ reverts quietly —
+        // the user already declined the sheet once.
+        return;
       }
+      // §9 state (e): tellable failures (404/409/422) share one toast
+      // treatment; the ♥ has already reverted, so the copy is the residue.
+      showToast(errorToastCopy(err, "Couldn’t save — try again."));
     }
   };
 
   const handleSave = (card: FeedCard) => {
     if (savedIds.has(card.affordance_id)) {
       setSaved(card.affordance_id, false);
-      removeSave(card.affordance_id, "want_to").catch(() =>
-        setSaved(card.affordance_id, true),
-      );
+      removeSave(card.affordance_id, "want_to").catch(() => {
+        setSaved(card.affordance_id, true);
+        // §9e: the ♥ is back; the shared toast says why.
+        showToast("Couldn’t remove that save — try again.");
+      });
     } else {
       void attemptSave(card, false);
     }
@@ -156,11 +224,15 @@ export default function Home() {
 
   const handleMagicClose = () => {
     setMagicOpen(false);
+    // Magic-link auth completes out of band; one retry on close either
+    // lands the kept intent or reverts quietly — it never reopens the
+    // sheet. Saves and trips are exclusive: only one intercepted at once.
     const pending = pendingSave.current;
     pendingSave.current = null;
-    // Magic-link auth completes out of band; one retry on close either
-    // lands the save or reverts quietly — it never reopens the sheet.
     if (pending) void attemptSave(pending, true);
+    const retryGoing = pendingGoing.current;
+    pendingGoing.current = null;
+    retryGoing?.();
   };
 
   const handleMore = (card: FeedCard) => {
@@ -176,8 +248,9 @@ export default function Home() {
 
   const liveVerb = filters.verb.trim().toLowerCase();
   const cards = feed ? feed.cards : [];
-  // The API filters by activity server-side; mock mode ignores params, so
-  // the verb also narrows client-side on activity_name substring.
+  // The API (and the mock, which mirrors its filter semantics) narrows by
+  // activity server-side after the 300ms debounce; the live verb also
+  // narrows client-side so keystrokes filter instantly.
   const visible = liveVerb
     ? cards.filter((c) => c.activity_name.toLowerCase().includes(liveVerb))
     : cards;
@@ -194,7 +267,13 @@ export default function Home() {
           ranked by live conditions
         </p>
         <p className={styles.loc} aria-live="polite">
-          <span>{locStatus === "granted" ? "near you" : "near Portland"}</span>
+          <span>
+            {locStatus === "granted"
+              ? "near you"
+              : neighborhood
+                ? `near ${neighborhood}`
+                : "near Portland"}
+          </span>
           {locStatus === "idle" || locStatus === "locating" ? (
             <>
               <span aria-hidden="true">·</span>
@@ -214,10 +293,61 @@ export default function Home() {
             </>
           ) : null}
         </p>
+        {locStatus === "manual" ? (
+          /* State (e): manual neighborhood entry. The name labels the
+             origin honestly; ranking keeps the Portland default until a
+             geocoding path exists (flagged API gap). */
+          <form
+            className={styles.locForm}
+            onSubmit={(e) => {
+              e.preventDefault();
+              confirmNeighborhood();
+            }}
+          >
+            <input
+              className={styles.locField}
+              type="text"
+              name="neighborhood"
+              autoComplete="off"
+              autoCapitalize="words"
+              spellCheck={false}
+              placeholder="No problem — name a neighborhood"
+              aria-label="Neighborhood"
+              value={neighborhoodDraft}
+              onChange={(e) => setNeighborhoodDraft(e.target.value)}
+            />
+            <button
+              type="submit"
+              className={styles.locBtn}
+              disabled={!neighborhoodDraft.trim()}
+            >
+              use it
+            </button>
+          </form>
+        ) : null}
         <div className={styles.filters}>
           <FeedFilters value={filters} onChange={setFilters} />
         </div>
       </section>
+
+      {welcomeBanner ? (
+        /* First-run doorway to /welcome (decision 12): one quiet line,
+           dismissible forever, never gating the feed below it. */
+        <div className={styles.welcomeLine}>
+          <span className={styles.welcomeCopy}>New here?</span>
+          <TertiaryButton href="/welcome">set up Place →</TertiaryButton>
+          <button
+            type="button"
+            className={styles.welcomeDismiss}
+            onClick={() => {
+              writeLocal(WELCOME_SEEN_KEY, new Date().toISOString());
+              setWelcomeBanner(false);
+            }}
+          >
+            dismiss
+          </button>
+        </div>
+      ) : null}
 
       {status === "error" ? (
         <div className={styles.degraded} role="status">
@@ -245,6 +375,21 @@ export default function Home() {
         </div>
       ) : visible.length === 0 ? (
         <div className={styles.empty}>
+          {liveVerb ? (
+            /* State (d): a narrowing verb owns its emptiness — show the
+               active chip with a clear affordance so "nothing worth the
+               drive" is never silently a filter artifact. */
+            <p className={styles.emptyFilter}>
+              <span className={styles.emptyChip}>{liveVerb}</span>
+              <button
+                type="button"
+                className={styles.emptyClear}
+                onClick={() => setFilters({ ...filters, verb: "" })}
+              >
+                clear
+              </button>
+            </p>
+          ) : null}
           <p className={styles.emptyLead}>
             Nothing worth the drive this weekend.
           </p>
@@ -271,14 +416,34 @@ export default function Home() {
         </>
       )}
 
+      {status === "ready" ? (
+        /* Quiet tertiary doorway to the public ranker — an acquisition/SEO
+           surface, so nothing louder than a footer line (task: decision 1,
+           quiet chrome only). */
+        <div className={styles.footLink}>
+          <TertiaryButton href="/waterfalls">
+            Gorge waterfalls by current flow →
+          </TertiaryButton>
+        </div>
+      ) : null}
+
       {goingCard !== null && (
         <GoingSheet
           card={goingCard}
           open
-          onClose={() => setGoingCard(null)}
-          onAuthNeeded={() => {
+          onClose={() => {
+            setGoingCard(null);
+            // State (d): the saved-for-Sunday confirmation outlives the
+            // sheet as a short toast residue on the feed.
+            showSavedToast();
+          }}
+          onAuthNeeded={(retry) => {
+            pendingGoing.current = retry;
             setMagicPitch(GOING_PITCH);
             setMagicOpen(true);
+          }}
+          onSaved={(day) => {
+            savedDay.current = day;
           }}
         />
       )}
@@ -287,6 +452,7 @@ export default function Home() {
         open={magicOpen}
         onClose={handleMagicClose}
       />
+      <Toast message={toast} />
     </>
   );
 }

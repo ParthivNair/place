@@ -15,8 +15,23 @@ import {
   type VerdictOut,
 } from "./types";
 
-// Fixed ids: 11… places · 22… affordances · 33… windows · 44… claims ·
-// 55… users · 66… verifications · 77… trips.
+import {
+  CLAIM_DOG_BALSAMROOT,
+  CLAIM_HR_ACCESS,
+  CLAIM_HR_JUMP_DEPTH,
+  CLAIM_HR_ROPE_SWING,
+  CLAIM_HR_WALK_PATH,
+  CLAIM_MULTNOMAH_PERMIT,
+  CLAIM_PITTOCK_PARKING,
+  CLAIM_SPRINGVILLE_GATE,
+  CLAIM_SPRINGVILLE_SHADE,
+  CLAIM_TAMANAWAS_FLOW,
+  CLAIM_WILDWOOD_MUD,
+} from "./claimIds";
+
+// Fixed ids: 11… places · 22… affordances · 33… windows · 44… claims
+// (lib/claimIds.ts — shared with the Sunday question copy) · 55… users ·
+// 66… verifications · 77… trips.
 const PLACE_TAMANAWAS = "11111111-0000-4000-8000-000000000001";
 const PLACE_HIGH_ROCKS = "11111111-0000-4000-8000-000000000002";
 const PLACE_DOG_MOUNTAIN = "11111111-0000-4000-8000-000000000003";
@@ -39,18 +54,8 @@ const WIN_HIGH_ROCKS_FLOW = "33333333-0000-4000-8000-000000000002";
 const WIN_HIGH_ROCKS_SEASON = "33333333-0000-4000-8000-000000000003";
 const WIN_DOG_BLOOM = "33333333-0000-4000-8000-000000000004";
 const WIN_MULTNOMAH_RAIN = "33333333-0000-4000-8000-000000000005";
-
-const CLAIM_TAMANAWAS_FLOW = "44444444-0000-4000-8000-000000000001";
-const CLAIM_HR_JUMP_DEPTH = "44444444-0000-4000-8000-000000000002";
-const CLAIM_HR_ACCESS = "44444444-0000-4000-8000-000000000003";
-const CLAIM_HR_ROPE_SWING = "44444444-0000-4000-8000-000000000004";
-const CLAIM_HR_WALK_PATH = "44444444-0000-4000-8000-000000000005";
-const CLAIM_DOG_BALSAMROOT = "44444444-0000-4000-8000-000000000006";
-const CLAIM_SPRINGVILLE_GATE = "44444444-0000-4000-8000-000000000007";
-const CLAIM_SPRINGVILLE_SHADE = "44444444-0000-4000-8000-000000000008";
-const CLAIM_MULTNOMAH_PERMIT = "44444444-0000-4000-8000-000000000009";
-const CLAIM_PITTOCK_PARKING = "44444444-0000-4000-8000-000000000010";
-const CLAIM_WILDWOOD_MUD = "44444444-0000-4000-8000-000000000011";
+const WIN_HIGH_ROCKS_TEMP = "33333333-0000-4000-8000-000000000006";
+const WIN_HIGH_ROCKS_BANK = "33333333-0000-4000-8000-000000000007";
 
 export const mockUser: UserOut = {
   id: "55555555-0000-4000-8000-000000000001",
@@ -425,6 +430,42 @@ export const mockPlaceHighRocks: PlacePage = {
             ],
           },
         },
+        /* State (c) fixture — the stale place-surface treatment
+           (UI-DRAFT-BRIEF §2): a fresh:false reading renders "as of Tue
+           4pm" (2026-06-30 16:00 PDT), never stale-as-fresh. The 68°F
+           water temp is an invented figure (flagged); the station is the
+           canon Estacada gauge, which serves temperature alongside
+           discharge. Non-gate, so the canon fresh flow line stays the
+           affordance's primary condition. */
+        {
+          window_id: WIN_HIGH_ROCKS_TEMP,
+          wtype: "water_temperature",
+          is_gate: false,
+          multiplier: 1.05,
+          state: "true",
+          state_since: "2026-06-24T19:00:00Z",
+          last_eval: "2026-07-05T13:00:00Z",
+          live: {
+            window_id: WIN_HIGH_ROCKS_TEMP,
+            wtype: "water_temperature",
+            text: "Water 68°F at the Estacada gauge",
+            source: "usgs_nwis 14210000",
+            fresh: false,
+            as_of: "2026-06-30T23:00:00Z",
+            evaluated_at: "2026-07-05T13:00:00Z",
+            provenance: [
+              {
+                feed_id: "usgs_nwis:14210000:water_temp",
+                provider: "usgs_nwis",
+                station_ref: "14210000",
+                parameter: "water_temp",
+                unit: "°F",
+                value: 68,
+                observed_at: "2026-06-30T23:00:00Z",
+              },
+            ],
+          },
+        },
       ],
       claims: mockClaimsHighRocksSwim,
       last_verified_at: "2026-06-27T22:40:00Z",
@@ -451,6 +492,20 @@ export const mockPlaceHighRocks: PlacePage = {
           last_eval: "2026-07-05T13:00:00Z",
           live: null,
         },
+        /* State (d) fixture — window unknown (○, basalt): no feed covers
+           bank mud, so the evaluator honestly reports unknown rather than
+           guessing false (docs/04 §4). Renders in the inline condition
+           sheet as ○ + "unknown". */
+        {
+          window_id: WIN_HIGH_ROCKS_BANK,
+          wtype: "bank_condition",
+          is_gate: false,
+          multiplier: 1.0,
+          state: "unknown",
+          state_since: "2026-06-15T07:00:00Z",
+          last_eval: "2026-07-05T13:00:00Z",
+          live: null,
+        },
       ],
       claims: [
         {
@@ -471,6 +526,16 @@ export const mockPlaceHighRocks: PlacePage = {
       assumption_of_risk: null,
     },
   ],
+  /* No canon permit applies to High Rocks (a city park — the canon permit
+     tokens, Northwest Forest Pass and the Multnomah timed-use permit,
+     belong to other places). The slot is designed and wired; null is the
+     honest value here. */
+  permit_note: null,
+  /* State (b) fixture — hazard suppressed server-side (docs/02 §5.1): the
+     cliff-jump affordance fails the "recent verification AND live trigger"
+     publication gate, so it is named but not shown. Client-proposed API
+     shape (flagged gap in types.ts). */
+  suppressed_hazards: [{ activity_name: "Cliff jump" }],
 };
 
 export const mockSearchResults: PlaceSearchResult[] = [
@@ -503,6 +568,12 @@ export const mockSearchResults: PlaceSearchResult[] = [
   },
 ];
 
+/* watching/window_state are the standing-query fields the API doesn't
+   serve yet (flagged gap in types.ts): the want-to row must show what the
+   sensor watches and its window state. The High Rocks watch text is the
+   canon copy verbatim (UI-DRAFT-BRIEF §6: "watching: Clackamas < 1,200
+   cfs"); the Dog Mountain bloom watch has no instrumented feed, so its
+   window rides the seasonal prior (● other-live, mock feed card 3). */
 export const mockSaves: SavedItem[] = [
   {
     affordance_id: AFF_DOG_MOUNTAIN_HIKE,
@@ -512,6 +583,19 @@ export const mockSaves: SavedItem[] = [
     activity_id: "wildflower_hike",
     created_at: "2026-01-18T19:30:00Z",
     last_alerted_at: "2026-05-12T15:00:00Z",
+    watching: "balsamroot bloom window",
+    window_state: "live",
+  },
+  {
+    affordance_id: AFF_HIGH_ROCKS_SWIM,
+    kind: "want_to",
+    place_id: PLACE_HIGH_ROCKS,
+    place_name: "High Rocks",
+    activity_id: "wild_swim",
+    created_at: "2026-03-02T18:00:00Z",
+    last_alerted_at: null,
+    watching: "Clackamas < 1,200 cfs",
+    window_state: "live",
   },
   {
     affordance_id: AFF_TAMANAWAS_HIKE,

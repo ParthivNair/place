@@ -142,6 +142,16 @@ export interface PlacePage {
   lng: number;
   elev_m: number | null;
   affordances: AffordanceDetail[];
+  /* NOT SERVED YET — flagged API gaps (UI-DRAFT-BRIEF cheat sheet "design
+     the slot, flag the gap"). permit_note carries the canon per-place
+     permit copy (Northwest Forest Pass, Multnomah timed-use) into
+     SafetyLine's permit slot. suppressed_hazards names hazard affordances
+     the server pre-gated out (needs a recent verification AND a live
+     trigger, docs/02 §5.1) so the page can acknowledge them honestly
+     instead of rendering them invisible. Optional: the live payload
+     serves neither yet. */
+  permit_note?: string | null;
+  suppressed_hazards?: { activity_name: string }[];
 }
 
 // ---------------------------------------------------------------------------
@@ -163,6 +173,15 @@ export interface SavedItem {
   activity_id: string;
   created_at: string;
   last_alerted_at: string | null;
+  /* NOT SERVED YET — flagged API gap (UI-DRAFT-BRIEF §6, decision 10).
+     A want-to is a standing query and the row must show what the sensor
+     watches ("Clackamas < 1,200 cfs") and the watched window's current
+     state (⚡/●/○). Optional so the real /saves payload, which omits both,
+     still typechecks; mock fixtures carry them so the founder can review
+     the treatment. "firing" = weather-triggered live (⚡), "live" = other
+     live (●), "unknown" = ○ — stale tends toward unknown, never false. */
+  watching?: string | null;
+  window_state?: "firing" | "live" | "unknown" | null;
 }
 
 export interface TripIn {

@@ -1,8 +1,8 @@
 "use client";
 
 import { Fragment, type ReactNode } from "react";
-import { ASSUMPTION_OF_RISK, type ClaimOut } from "@/lib/types";
-import { fmtObservedDate, fmtVerified } from "@/lib/format";
+import type { ClaimOut } from "@/lib/types";
+import { fmtObservedDate, fmtVerified, withData } from "@/lib/format";
 import { VerdictControls, type UiVerdict } from "./VerdictControls";
 import styles from "./ClaimRow.module.css";
 
@@ -92,12 +92,15 @@ export function ClaimRow({
     const decay = info.period ? `decays in ${info.period}` : null;
     const phrase = noun && decay ? `${noun} — ${decay}` : (noun ?? decay);
     if (phrase) meta.push(phrase);
-    meta.push(`last ${fmtVerified(claim.last_evidence_at)}`);
+    // withData catches durations ("6 days"); dates stay in the UI font.
+    meta.push(withData(`last ${fmtVerified(claim.last_evidence_at)}`));
   } else {
     // Non-extraction evidence is field truth; last_evidence_at is the
     // decay clock any confirming evidence resets (docs/01 §5).
     meta.push(
-      <span className={styles.ok}>✓ {fmtVerified(claim.last_evidence_at)}</span>,
+      <span className={styles.ok}>
+        ✓ {withData(fmtVerified(claim.last_evidence_at))}
+      </span>,
     );
   }
 
@@ -139,13 +142,10 @@ export function ClaimRow({
             ))}
           </div>
         ) : null}
-        {hazard ? (
-          // Required whenever hazard styling appears (docs/02 §5 rule 1).
-          // The pinned props carry no assumption_of_risk, so the row renders
-          // the types.ts mirror — byte-for-byte the schemas.py server string,
-          // the single legal source.
-          <p className={styles.risk}>{ASSUMPTION_OF_RISK}</p>
-        ) : null}
+        {/* No assumption-of-risk copy here: the affordance foot's
+            SafetyLine renders the SERVER string once per section (decision
+            3 — single legal source). A second, client-mirrored copy per
+            hazard claim duplicated the legal text and could drift. */}
       </div>
       <VerdictControls
         control={{ claim_id: claim.id, allowed_verdicts: claim.allowed_verdicts }}

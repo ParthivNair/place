@@ -32,7 +32,7 @@
 }
 
 .glyph {
-  font-size: 15px;
+  font-size: var(--text-sub);
 }
 
 /* Answered states — one filled tint, siblings recede to meta ink */
@@ -88,7 +88,9 @@
   color: var(--forest);
 }
 
-/* Compact inline form, on claim rows */
+/* Compact inline form, on claim rows. Word labels at the 13px meta floor
+   (the single glyph set has no deny/changed mark — see VerdictControls.tsx);
+   min-height keeps the 44px touch target. */
 .miniVerdicts {
   display: flex;
   gap: var(--s2);
@@ -97,13 +99,13 @@
 
 .mini {
   appearance: none;
-  width: var(--touch);
-  height: var(--touch);
+  min-height: var(--touch);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: 0 var(--s3);
   font-family: var(--font-ui);
-  font-size: 17px;
+  font-size: var(--text-meta);
   font-weight: 600;
   color: var(--ink-soft);
   background: var(--card);

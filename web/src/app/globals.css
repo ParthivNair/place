@@ -53,6 +53,17 @@ svg {
   padding: var(--s4) var(--s4) var(--s8);
 }
 
+/* Decision 13: the seasonal-ranker/SEO pages are the app's only desktop
+   surfaces — one centered column, max ~680px, never a map hero. A route
+   opts in by setting data-shell-wide on its root element; the shell
+   itself widens, so sheets and fixed overlays keep their containing
+   block (no transforms, no negative-margin breakouts). */
+@media (min-width: 720px) {
+  .shell:has([data-shell-wide]) {
+    max-width: 680px;
+  }
+}
+
 :focus-visible {
   outline: 2px solid var(--forest);
   outline-offset: 2px;

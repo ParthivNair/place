@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState, type ReactNode } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import {
   ApiError,
   addSave,
@@ -16,7 +16,8 @@ import type {
   SaveKind,
   WindowOut,
 } from "@/lib/types";
-import { fmtAsOf, fmtVerified, windowGlyph } from "@/lib/format";
+import { fmtAsOf, fmtVerified, staleAsOf, windowGlyph, withData } from "@/lib/format";
+import { writePendingIntent } from "@/lib/local";
 import { AffordanceStrip } from "@/components/AffordanceStrip";
 import { TertiaryButton } from "@/components/Buttons";
 import { ClaimRow } from "@/components/ClaimRow";
@@ -24,50 +25,14 @@ import { MagicLinkSheet } from "@/components/MagicLinkSheet";
 import { NearbyAfter, type NearbyItem } from "@/components/NearbyAfter";
 import { PlacePageHeader } from "@/components/PlacePageHeader";
 import { SafetyLine } from "@/components/SafetyLine";
+import { Toast, errorToastCopy, useToast } from "@/components/Toast";
 import type { UiVerdict } from "@/components/VerdictControls";
 import styles from "./place.module.css";
 
-/* .data wrapping for measured values — duplicated from ProvenanceLine, which
-   does not export withData and is owned by another surface. Same rules: unit-
-   bearing numbers, comparator thresholds, ranges, clock times, 5+-digit
-   station ids; no lookbehind (Safari < 16.4 throws at construction). */
-const NUM = "[−-]?\\d[\\d,.]*";
-const RANGE = `${NUM}(?:\\s?[–—-]\\s?${NUM})?`;
-const UNIT =
-  "(?:cfs|°[cf]|ft|in|mi|km|mm|cm|hours?|hrs?|h|min(?:ute)?s?|days?|weeks?|%)";
-const MEASURE = new RegExp(
-  [
-    `[<>≤≥~]\\s?${RANGE}(?:\\s?${UNIT})?(?![a-z0-9])`,
-    `${RANGE}\\s?${UNIT}(?![a-z0-9])`,
-    `\\d{1,2}:\\d{2}(?:\\s?(?:am|pm))?`,
-    `\\d{1,2}\\s?(?:am|pm)(?![a-z0-9])`,
-    `\\d{5,}`,
-  ].join("|"),
-  "gi",
-);
-
-function withData(text: string): ReactNode {
-  const nodes: ReactNode[] = [];
-  let cursor = 0;
-  for (const match of text.matchAll(MEASURE)) {
-    const start = match.index ?? 0;
-    if (start > cursor) nodes.push(text.slice(cursor, start));
-    nodes.push(
-      <span key={start} className="data">
-        {match[0]}
-      </span>,
-    );
-    cursor = start + match[0].length;
-  }
-  if (cursor === 0) return text;
-  if (cursor < text.length) nodes.push(text.slice(cursor));
-  return nodes;
-}
-
-/* Leave No Trace rides every foot (docs/02 §5.4). Per-place permit strings
-   (Northwest Forest Pass, Multnomah timed-use) cannot render yet: PlacePage
-   serves no permit field (UI-DRAFT-BRIEF cheat sheet) — SafetyLine's permit
-   slot stays empty until the API grows one. */
+/* Leave No Trace rides every foot (docs/02 §5.4). The per-place permit
+   copy (Northwest Forest Pass, Multnomah timed-use) rides SafetyLine's
+   permit slot via PlacePage.permit_note — a client-proposed field the API
+   doesn't serve yet (flagged gap in lib/types.ts). */
 const STEWARDSHIP = "pack it out";
 
 // Canon auth pitch for the save intercept (UI-DRAFT-BRIEF §7).
@@ -137,9 +102,12 @@ type Tone = "isLive" | "isFading" | "isUnknown";
 
 function toneOf(w: WindowOut): Tone {
   if (w.live) return w.live.fresh ? "isLive" : "isFading";
-  // No live reason → seasonal prior only; stale tends toward unknown (○),
-  // never toward false (docs/04 §4).
-  return "isUnknown";
+  // No live reason but a determined state: the evaluator's last word is
+  // still knowledge — a known-open seasonal window renders live-toned with
+  // its filled ● (the Dog Mountain seasonal-prior precedent), never in
+  // unknown basalt. Only a genuinely unknown state gets ○ + basalt; stale
+  // tends toward unknown, never toward false (docs/04 §4).
+  return w.state === "unknown" ? "isUnknown" : "isLive";
 }
 
 function conditionLead(w: WindowOut): string {
@@ -182,6 +150,8 @@ function AffordanceSection({
   onToggle,
   answers,
   notes,
+  refreshed,
+  permit,
   onVerdict,
 }: {
   aff: AffordanceDetail;
@@ -189,6 +159,8 @@ function AffordanceSection({
   onToggle: () => void;
   answers: Record<string, UiVerdict>;
   notes: Record<string, VerdictNote>;
+  refreshed: Record<string, number>;
+  permit: string | null;
   onVerdict: (
     claimId: string,
     apiVerdict: "confirm" | "refute" | "changed",
@@ -200,6 +172,11 @@ function AffordanceSection({
     aff.windows.find((w) => w.is_gate) ??
     aff.windows.find((w) => w.live !== null) ??
     aff.windows[0];
+
+  /* Shared staleAsOf (§9 state c): the server may have composed
+     "(as of …)" into live.text already — stamp once, never twice
+     (ProvenanceLine parity across feed/place/ranker). */
+  const primaryStamp = primary?.live ? staleAsOf(primary.live) : null;
 
   return (
     <section className={styles.affordance}>
@@ -219,10 +196,10 @@ function AffordanceSection({
           <div>
             <p className={styles.lead}>
               {withData(conditionLead(primary))}
-              {primary.live && !primary.live.fresh && primary.live.as_of ? (
+              {primaryStamp ? (
                 <>
                   {" — "}
-                  {withData(fmtAsOf(primary.live.as_of))}
+                  {withData(primaryStamp)}
                 </>
               ) : null}
             </p>
@@ -243,7 +220,7 @@ function AffordanceSection({
             ✓
           </span>
           <p className={styles.creditText}>
-            {fmtVerified(aff.last_verified_at)}
+            {withData(fmtVerified(aff.last_verified_at))}
             {aff.verified_by ? (
               <>
                 {" by "}
@@ -297,10 +274,23 @@ function AffordanceSection({
         <div className={styles.claims}>
           {aff.claims.map((claim) => {
             const note = notes[claim.id];
+            /* State (f): a verdict visually refreshes the claim — the
+               VerdictOut confidence (and a reset decay clock) replace the
+               served values, so a "needs a fresh look" chip clears the
+               moment someone verifies (UI-DRAFT-BRIEF §2). */
+            const fresh = refreshed[claim.id];
+            const shown =
+              fresh !== undefined
+                ? {
+                    ...claim,
+                    confidence: fresh,
+                    last_evidence_at: new Date().toISOString(),
+                  }
+                : claim;
             return (
               <div key={claim.id} className={styles.claimItem}>
                 <ClaimRow
-                  claim={claim}
+                  claim={shown}
                   answered={answers[claim.id] ?? null}
                   onVerdict={onVerdict}
                 />
@@ -322,10 +312,11 @@ function AffordanceSection({
 
       <div className={styles.foot}>
         {/* Hazard is pre-gated server-side: assumption_of_risk arrives only
-            when both publication gates passed; absent hazard affordances
-            simply are not in the payload — no client gating. */}
+            when both publication gates passed. Suppressed hazard affordances
+            are acknowledged by name at page level (see PlaceRoute). */}
         <SafetyLine
           assumptionOfRisk={aff.assumption_of_risk}
+          permit={permit}
           stewardship={STEWARDSHIP}
         />
       </div>
@@ -343,13 +334,29 @@ export default function PlaceRoute({
   const [place, setPlace] = useState<PlacePage | null>(null);
   const [failure, setFailure] = useState<"missing" | "error" | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const [savedKinds, setSavedKinds] = useState<Set<SaveKind>>(new Set());
+  /* Kind → the affordance actually carrying the save. Saves are
+     affordance-scoped in the API while the header triplet is
+     place-scoped (model gap): a feed ♥ can land on a non-lead
+     affordance, and removal must DELETE that same save — deleting
+     against the lead would 404 ("This place isn't available." on a
+     page that plainly is) and leave the kind un-removable here. */
+  const [savedBy, setSavedBy] = useState<Map<SaveKind, string>>(new Map());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [answers, setAnswers] = useState<Record<string, UiVerdict>>({});
   const [notes, setNotes] = useState<Record<string, VerdictNote>>({});
+  const [refreshed, setRefreshed] = useState<Record<string, number>>({});
   const [noted, setNoted] = useState<Set<string>>(new Set());
   const [authOpen, setAuthOpen] = useState(false);
   const [authPitch, setAuthPitch] = useState<string | undefined>(undefined);
+  // §9 state (e): the shared toast treatment — never a per-page one-off.
+  const { toast, showToast } = useToast();
+  /* A verdict that hit a 401 is kept and retried once when the auth sheet
+     closes — the intent resumes, the user never re-taps (decision 11;
+     app/page.tsx save-retry idiom). */
+  const pendingVerdict = useRef<{
+    claimId: string;
+    apiVerdict: "confirm" | "refute" | "changed";
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -378,13 +385,14 @@ export default function PlaceRoute({
     listSaves().then(
       (saves) => {
         if (cancelled) return;
-        setSavedKinds(
-          new Set(
-            saves
-              .filter((s) => s.place_id === place.id || here.has(s.affordance_id))
-              .map((s) => s.kind),
-          ),
-        );
+        // First save wins per kind; several same-kind saves across this
+        // place's affordances stay a /saves concern (it scopes per row).
+        const byKind = new Map<SaveKind, string>();
+        for (const s of saves) {
+          if (s.place_id !== place.id && !here.has(s.affordance_id)) continue;
+          if (!byKind.has(s.kind)) byKind.set(s.kind, s.affordance_id);
+        }
+        setSavedBy(byKind);
       },
       () => {
         /* signed-out: the triplet starts empty; the first tap intercepts */
@@ -397,29 +405,44 @@ export default function PlaceRoute({
 
   const toggleSave = (kind: SaveKind) => {
     if (!place || place.affordances.length === 0) return;
-    // Saves are affordance-scoped in the API while the header triplet is
-    // place-scoped — the lead affordance carries the save (model gap).
-    const affordanceId = place.affordances[0].affordance_id;
-    const had = savedKinds.has(kind);
-    setSavedKinds((prev) => {
-      const next = new Set(prev);
+    // A NEW save lands on the lead affordance (model gap, savedBy note);
+    // removal targets whichever affordance the read side found it on.
+    const held = savedBy.get(kind);
+    const affordanceId = held ?? place.affordances[0].affordance_id;
+    const had = held !== undefined;
+    setSavedBy((prev) => {
+      const next = new Map(prev);
       if (had) next.delete(kind);
-      else next.add(kind);
+      else next.set(kind, affordanceId);
       return next;
     });
     const call = had
       ? removeSave(affordanceId, kind)
       : addSave({ affordance_id: affordanceId, kind });
     call.catch((err: unknown) => {
-      setSavedKinds((prev) => {
-        const next = new Set(prev);
-        if (had) next.add(kind);
+      setSavedBy((prev) => {
+        const next = new Map(prev);
+        if (had) next.set(kind, affordanceId);
         else next.delete(kind);
         return next;
       });
       if (err instanceof ApiError && err.status === 401) {
+        // The magic link opens in a fresh tab — the interrupted save must
+        // survive in storage for /auth/verify to finish (decision 11).
+        if (!had) {
+          writePendingIntent({
+            type: "save",
+            affordance_id: affordanceId,
+            kind,
+            place_name: place.name,
+          });
+        }
         setAuthPitch(SAVE_PITCH);
         setAuthOpen(true);
+      } else {
+        // §9 state (e): tellable failures share one toast treatment; the
+        // triplet has already reverted, so the copy is the only residue.
+        showToast(errorToastCopy(err, "Couldn’t save — try again."));
       }
     });
   };
@@ -436,12 +459,15 @@ export default function PlaceRoute({
   const handleVerdict = async (
     claimId: string,
     apiVerdict: "confirm" | "refute" | "changed",
+    isRetry = false,
   ): Promise<void> => {
     // UI copy says deny; the wire says refute — never displayed.
     const ui: UiVerdict = apiVerdict === "refute" ? "deny" : apiVerdict;
     try {
       const out = await postVerdict({ claim_id: claimId, verdict: apiVerdict });
       setAnswers((prev) => ({ ...prev, [claimId]: ui }));
+      // State (f): the new confidence refreshes the row for everyone.
+      setRefreshed((prev) => ({ ...prev, [claimId]: out.confidence }));
       if (ui === "confirm") {
         const snap = fmtSnapshot(out.conditions_snapshot);
         setNotes((prev) => ({
@@ -455,13 +481,11 @@ export default function PlaceRoute({
           },
         }));
       } else {
+        // No deny/changed glyph exists in the single set (✕ and ~ don't,
+        // and ● is reserved for "other live") — the receipt is quiet text.
         setNotes((prev) => ({
           ...prev,
-          [claimId]: {
-            mark: ui === "deny" ? "●" : "~",
-            tone: ui === "deny" ? "re" : "ch",
-            text: "Noted — this claim gets re-checked",
-          },
+          [claimId]: { text: "Noted — this claim gets re-checked" },
         }));
       }
     } catch (err: unknown) {
@@ -472,16 +496,30 @@ export default function PlaceRoute({
           ...prev,
           [claimId]: { text: "Already logged this week ✓" },
         }));
-      } else if (err instanceof ApiError && err.status === 401) {
+      } else if (!isRetry && err instanceof ApiError && err.status === 401) {
+        // The verdict survives the interception and retries once when the
+        // auth sheet closes (decision 11) — never re-tapped, never looped.
+        pendingVerdict.current = { claimId, apiVerdict };
         setAuthPitch(undefined);
         setAuthOpen(true);
       } else {
+        // §9e copy source shared with the toasts (404/422); the receipt
+        // renders inline because it belongs beside the tapped control.
         setNotes((prev) => ({
           ...prev,
-          [claimId]: { text: "Couldn’t log that — try again." },
+          [claimId]: { text: errorToastCopy(err, "Couldn’t log that — try again.") },
         }));
       }
     }
+  };
+
+  const handleAuthClose = () => {
+    setAuthOpen(false);
+    // Magic-link auth completes out of band; one retry on close either
+    // lands the kept verdict or settles into the quiet retry note.
+    const pending = pendingVerdict.current;
+    pendingVerdict.current = null;
+    if (pending) void handleVerdict(pending.claimId, pending.apiVerdict, true);
   };
 
   if (failure === "missing") {
@@ -513,14 +551,38 @@ export default function PlaceRoute({
   }
 
   if (!place) {
+    /* §9 state (f): loading respects the surface anatomy — header (name /
+       kind / save triplet), then affordance sections with the 22px-gutter
+       condition row and claim lines. Never a spinner-only screen. */
     return (
-      <div className={styles.page} aria-busy="true">
-        <div className={styles.skeleton}>
-          <span className={`${styles.bar} ${styles.barWide}`} />
-          <span className={`${styles.bar} ${styles.barMid}`} />
-          <span className={`${styles.bar} ${styles.barFull}`} />
-          <span className={`${styles.bar} ${styles.barMid}`} />
-        </div>
+      <div className={styles.page} role="status" aria-label="Loading this place">
+        <article className={`${styles.surface} ${styles.skSurface}`} aria-hidden="true">
+          <div className={styles.skHeader}>
+            <div className={`${styles.skBar} ${styles.skName}`} />
+            <div className={`${styles.skBar} ${styles.skKind}`} />
+            <div className={styles.skTriplet}>
+              <div className={styles.skDot} />
+              <div className={styles.skDot} />
+              <div className={styles.skDot} />
+            </div>
+          </div>
+          {[0, 1].map((i) => (
+            <div key={i} className={styles.skSection}>
+              <div className={`${styles.skBar} ${styles.skStrip}`} />
+              <div className={styles.skCondRow}>
+                <div className={styles.skGlyph} />
+                <div>
+                  <div className={`${styles.skBar} ${styles.skLead}`} />
+                  <div className={`${styles.skBar} ${styles.skSrc}`} />
+                </div>
+              </div>
+              <div className={`${styles.skBar} ${styles.skClaim}`} />
+              {i === 0 ? (
+                <div className={`${styles.skBar} ${styles.skClaimShort}`} />
+              ) : null}
+            </div>
+          ))}
+        </article>
       </div>
     );
   }
@@ -530,7 +592,7 @@ export default function PlaceRoute({
       <article className={styles.surface}>
         <PlacePageHeader
           place={place}
-          savedKinds={savedKinds}
+          savedKinds={new Set(savedBy.keys())}
           onToggleSave={toggleSave}
         />
 
@@ -544,8 +606,32 @@ export default function PlaceRoute({
             onToggle={() => toggleExpanded(aff.affordance_id)}
             answers={answers}
             notes={notes}
+            refreshed={refreshed}
+            permit={place.permit_note ?? null}
             onVerdict={handleVerdict}
           />
+        ))}
+
+        {/* State (b): hazard affordances the server pre-gated out are
+            acknowledged by name, never rendered as if they don't exist —
+            honesty about suppression is part of the hazard posture
+            (docs/02 §5.1; canon copy verbatim). */}
+        {(place.suppressed_hazards ?? []).map((h) => (
+          <section
+            key={h.activity_name}
+            className={styles.suppressed}
+            aria-label={`${h.activity_name} — not shown`}
+          >
+            <p className={styles.suppressedName}>
+              <span className={styles.suppressedGlyph} aria-hidden="true">
+                ○
+              </span>
+              {h.activity_name}
+            </p>
+            <p className={styles.suppressedNote}>
+              Not shown — needs a recent verification and a live trigger.
+            </p>
+          </section>
         ))}
 
         <div className={styles.directions}>
@@ -568,8 +654,9 @@ export default function PlaceRoute({
       <MagicLinkSheet
         pitch={authPitch}
         open={authOpen}
-        onClose={() => setAuthOpen(false)}
+        onClose={handleAuthClose}
       />
+      <Toast message={toast} />
     </div>
   );
 }

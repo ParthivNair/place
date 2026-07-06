@@ -1,15 +1,18 @@
-/* Claim row — mirrors design/components/claim-row.html: copy left, inline
-   one-tap verdict cluster right (the 44px minis come from VerdictControls
-   compact). Edit tokens.css first, then re-sync here. */
+/* Claim row — mirrors design/components/claim-row.html: copy first, the
+   one-tap verdict cluster after (VerdictControls compact). The cluster
+   wears word labels (glyph-set rule — no ✕/~ exist), so it wraps to its
+   own line below the copy instead of the spec card's 44px squares on the
+   right. Edit tokens.css first, then re-sync here. */
 
 .row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--s3);
 }
 
 .copy {
-  flex: 1;
+  flex: 1 1 100%;
   min-width: 0;
 }
 
@@ -83,14 +86,5 @@
   color: var(--unknown);
 }
 
-/* Assumption-of-risk well — required whenever hazard styling appears
-   (docs/02 §5 rule 1). Kept compact: it sits inside a list row. */
-.risk {
-  background: var(--hazard-tint);
-  border-radius: var(--radius-ctl);
-  padding: var(--s2) var(--s3);
-  font-size: var(--text-sub);
-  color: var(--hazard);
-  line-height: 1.4;
-  margin-top: var(--s2);
-}
+/* (Assumption-of-risk moved to the affordance foot's SafetyLine — the
+   server string renders once per section, decision 3.) */

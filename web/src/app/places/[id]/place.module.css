@@ -209,6 +209,34 @@
   margin-top: var(--s3);
 }
 
+/* ---- Suppressed hazard slot (state b) ----
+   Named but not shown: basalt unknown-tint well — quiet acknowledgement,
+   never hazard rust (nothing is being offered, so nothing needs the
+   assumption-of-risk framing). */
+
+.suppressed {
+  border-top: var(--border);
+  padding: var(--s3) var(--s4);
+  background: var(--unknown-tint);
+}
+
+.suppressedName {
+  font-size: var(--text-sub);
+  font-weight: 600;
+  color: var(--unknown);
+}
+
+.suppressedGlyph {
+  margin-right: var(--s2);
+}
+
+.suppressedNote {
+  margin-top: 2px;
+  font-size: var(--text-meta);
+  color: var(--unknown);
+  line-height: 1.4;
+}
+
 /* ---- Last-mile hand-off ---- */
 
 /* s4 − s2 of row padding + the tertiary's own s2 pad = the s4 text edge. */
@@ -218,35 +246,110 @@
   display: flex;
 }
 
-/* ---- Loading / failure (no spinner-only screens) ---- */
+/* ---- Loading / failure (§9 state f: no spinner-only screens) ----
+   The skeleton mirrors the surface anatomy: header (name 20 / kind 13 /
+   44px save triplet), then affordance sections — strip line, condition
+   row on the 22px glyph gutter, claim lines. Bar heights mirror the type
+   they stand in for (feed SkeletonCard idiom). */
 
-.skeleton {
-  background: var(--card);
-  border: var(--border);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  padding: var(--s4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--s3);
+.skSurface {
+  animation: skPulse 1.6s ease-in-out infinite;
 }
 
-.bar {
-  height: var(--s4);
+@keyframes skPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skSurface {
+    animation: none;
+  }
+}
+
+.skBar {
+  background: var(--recess);
+  border-radius: var(--s1);
+}
+
+.skHeader {
+  padding: var(--s5) var(--s4) var(--s4);
+}
+
+.skName {
+  width: 60%;
+  height: 20px;
+}
+
+.skKind {
+  width: 30%;
+  height: 13px;
+  margin-top: var(--s2);
+}
+
+.skTriplet {
+  display: flex;
+  gap: var(--s2);
+  margin-top: var(--s3);
+}
+
+.skDot {
+  width: var(--touch);
+  height: var(--touch);
   border-radius: var(--radius-ctl);
   background: var(--recess);
 }
 
-.barWide {
-  width: 60%;
+.skSection {
+  border-top: var(--border);
+  padding: var(--s4);
 }
 
-.barMid {
-  width: 40%;
+.skStrip {
+  width: 70%;
+  height: 15px;
 }
 
-.barFull {
+.skCondRow {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  column-gap: var(--s1);
+  margin-top: var(--s3);
+}
+
+.skGlyph {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--recess);
+}
+
+.skLead {
+  width: 85%;
+  height: 15px;
+}
+
+.skSrc {
+  width: 55%;
+  height: 13px;
+  margin-top: var(--s2);
+}
+
+.skClaim {
   width: 100%;
+  height: 15px;
+  margin-top: var(--s4);
+}
+
+.skClaimShort {
+  width: 65%;
+  height: 15px;
+  margin-top: var(--s3);
 }
 
 .notice {

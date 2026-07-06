@@ -1,68 +1,65 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { TertiaryButton } from "./Buttons";
+import type { ReasonOut } from "@/lib/types";
+import { fmtAsOf, glyphFor, withData } from "@/lib/format";
+import { PrimaryButton, TertiaryButton } from "./Buttons";
 import styles from "./AlertCard.module.css";
-
-/* Measured values in the server-composed alert copy wear the global .data
-   class (docs/00 §1) — same pattern set as ProvenanceLine: unit-bearing
-   numbers, comparator thresholds, ranges, clock times, and long station
-   ids. Claim words stay in the UI font; unmatched text renders verbatim.
-   No lookbehind (Safari < 16.4 throws at construction). */
-const NUM = "[−-]?\\d[\\d,.]*";
-const RANGE = `${NUM}(?:\\s?[–—-]\\s?${NUM})?`;
-const UNIT =
-  "(?:cfs|°[cf]|ft|in|mi|km|mm|cm|hours?|hrs?|h|min(?:ute)?s?|days?|weeks?|%)";
-const MEASURE = new RegExp(
-  [
-    `[<>≤≥~]\\s?${RANGE}(?:\\s?${UNIT})?(?![a-z0-9])`,
-    `${RANGE}\\s?${UNIT}(?![a-z0-9])`,
-    `\\d{1,2}:\\d{2}(?:\\s?(?:am|pm))?`,
-    `\\d{1,2}\\s?(?:am|pm)(?![a-z0-9])`,
-    `\\d{5,}`,
-  ].join("|"),
-  "gi",
-);
-
-function withData(text: string): ReactNode {
-  const nodes: ReactNode[] = [];
-  let cursor = 0;
-  for (const match of text.matchAll(MEASURE)) {
-    const start = match.index ?? 0;
-    if (start > cursor) nodes.push(text.slice(cursor, start));
-    nodes.push(
-      <span key={start} className="data">
-        {match[0]}
-      </span>,
-    );
-    cursor = start + match[0].length;
-  }
-  if (cursor === 0) return text;
-  if (cursor < text.length) nodes.push(text.slice(cursor));
-  return nodes;
-}
 
 /* Surface 3 (docs/02 §2): a save is a standing query, not a bookmark. The
    condition cron fires this card on a trigger transition — `message` is the
    server-composed trigger copy ("Dog Mountain balsamroot peaking"),
-   `savedNote` the memory framing ("you saved this in January"). The card
-   carries one quiet action by contract; "I'm going" lives on the place
-   page that `onOpen` leads to. */
+   `savedNote` the memory framing ("you saved this in January"). Two actions
+   per the alert-card spec (design/surfaces/alert-card.html): "I'm going"
+   filled primary + "see conditions →" quiet tertiary.
+
+   `reason` carries the live provenance for the trigger (source + freshness
+   — every card shows its provenance line, constraint block). /saves serves
+   none of this (flagged API gap in types.ts / saves page); the owner
+   resolves it from the feed where it can, and the card degrades to the
+   honest "live trigger detail unavailable" line where it can't. */
 export function AlertCard({
   message,
   savedNote,
+  reason,
+  onGoing,
   onOpen,
 }: {
   message: string;
   savedNote?: string;
+  reason?: ReasonOut | null;
+  onGoing?: () => void;
   onOpen?: () => void;
 }) {
   return (
     <section className={styles.alert}>
       <p className={styles.message}>{withData(message)}</p>
+      {reason ? (
+        <p
+          className={`${styles.prov} ${reason.fresh ? styles.isLive : styles.isFading}`}
+        >
+          <span className={styles.glyph} aria-hidden="true">
+            {glyphFor(reason)}
+          </span>
+          {reason.source ? withData(reason.source) : null}
+          {!reason.fresh && reason.as_of ? (
+            <> · {withData(fmtAsOf(reason.as_of))}</>
+          ) : null}
+        </p>
+      ) : (
+        /* Degraded honestly — never a bare nudge (docs/04 §4). */
+        <p className={`${styles.prov} ${styles.isUnknown}`}>
+          <span className={styles.glyph} aria-hidden="true">
+            ○
+          </span>
+          live trigger detail unavailable
+        </p>
+      )}
       {savedNote ? <span className={styles.memory}>{savedNote}</span> : null}
       <div className={styles.actions}>
-        <TertiaryButton onClick={onOpen}>see place →</TertiaryButton>
+        {onGoing ? (
+          <PrimaryButton onClick={onGoing}>I’m going</PrimaryButton>
+        ) : null}
+        <TertiaryButton onClick={onOpen}>see conditions →</TertiaryButton>
       </div>
     </section>
   );

@@ -62,10 +62,59 @@
   cursor: default;
 }
 
+/* State (e): manual neighborhood entry — one quiet inline row, no card. */
+.locForm {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.locField {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--touch);
+  padding: 0 var(--s3);
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-ctl);
+  font-family: var(--font-ui);
+  font-size: var(--text-body); /* ≥16px keeps iOS Safari from zooming */
+  color: var(--ink);
+}
+
+.locField::placeholder {
+  color: var(--ink-faint);
+}
+
 /* FeedFilters carries no outer margin; the owning surface spaces it.
    The 44px .loc row above already reads as whitespace, so s2 suffices. */
 .filters {
   margin-top: var(--s2);
+}
+
+/* ---- One-time /welcome doorway — a line, not a card ---- */
+
+.welcomeLine {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: var(--touch);
+  margin-top: var(--s3);
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+
+.welcomeCopy {
+  padding-left: var(--s2);
+}
+
+.welcomeDismiss {
+  margin-left: auto;
+  padding: 0 var(--s2);
+  font-family: var(--font-ui);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  color: var(--ink-faint);
 }
 
 /* ---- Short-feed honesty note (spec .feed-count) ---- */
@@ -100,6 +149,46 @@
   font-size: var(--text-sub);
   color: var(--ink-soft);
 }
+
+/* State (d): the narrowing verb owns its zero — active chip + clear. */
+.emptyFilter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  margin-bottom: var(--s3);
+}
+
+.emptyChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 var(--s3);
+  border-radius: var(--radius-chip);
+  background: var(--forest-tint);
+  font-size: var(--text-sub);
+  font-weight: 500;
+  color: var(--forest);
+}
+
+.emptyClear {
+  padding: 0 var(--s2);
+  font-family: var(--font-ui);
+  font-size: var(--text-sub);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+/* ---- Quiet footer doorway to the public ranker ---- */
+
+.footLink {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--s5);
+}
+
+/* The saved-for-Sunday toast moved to the shared treatment —
+   components/Toast.module.css (§9 state e, one toast for every surface). */
 
 /* ---- Degraded state: "live … unavailable", never "conditions bad" ---- */
 

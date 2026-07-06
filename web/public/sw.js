@@ -1,12 +1,24 @@
 /* Place service worker — minimal, honest PWA.
-   Shell cached on install; network-first with cache fallback for
-   navigations and the feed (an offline feed renders Thursday's cards,
-   stamped "as of <time>" by the UI). Push → notification → open URL. */
+   Shell + manifest + icons cached on install; network-first with cache
+   fallback for navigations, the feed, and Next's static chunks (an
+   offline navigation replays the cached HTML AND the hashed JS/CSS it
+   references, so the last-cached feed actually hydrates, stamped
+   "as of <time>" by the UI). Network-first — never cache-first — so a
+   dev server's un-hashed chunks are never served stale while online.
+   Push → notification → open URL. */
 
-const CACHE = "place-shell-v1";
+const CACHE = "place-shell-v2";
+
+const PRECACHE = [
+  "/",
+  "/manifest.webmanifest",
+  "/icon.svg",
+  "/icon-192.png",
+  "/icon-512.png",
+];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(["/"])));
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)));
   self.skipWaiting();
 });
 
@@ -40,11 +52,23 @@ async function networkFirst(request, fallbackUrl) {
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
+  if (request.method !== "GET") return;
   if (request.mode === "navigate") {
     event.respondWith(networkFirst(request, "/"));
     return;
   }
-  if (request.method === "GET" && new URL(request.url).pathname === "/feed") {
+  const { pathname } = new URL(request.url);
+  // Next's build assets — cached as they're fetched so the offline shell
+  // has the scripts/styles its cached HTML asks for.
+  if (pathname.startsWith("/_next/static/")) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+  // The feed API (real mode; mock mode bundles fixtures and never hits
+  // this) — pathname-only match works same-origin; a cross-origin API
+  // host passes through untouched (flagged: untested plumbing until the
+  // real API fronts the PWA).
+  if (pathname === "/feed") {
     event.respondWith(networkFirst(request));
   }
 });

@@ -111,6 +111,37 @@
   color: var(--ink-soft);
 }
 
+.watchGlyph {
+  margin-right: var(--s1);
+}
+
+.watchLive {
+  color: var(--live);
+}
+
+.watchUnknown {
+  color: var(--unknown);
+}
+
+/* ---- State (b): all-quiet — the sensors are still on the job ---- */
+
+.allQuiet {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+}
+
+.allQuiet :global(.data) {
+  font-size: var(--text-sub);
+}
+
+.allQuietGlyph {
+  flex: none;
+  color: var(--unknown);
+}
+
 /* .data is 0.94em — pin to the 13px hard floor inside a meta-sized line. */
 .watch :global(.data) {
   font-size: var(--text-meta);
@@ -134,6 +165,90 @@
 .pitch {
   font-size: var(--text-body);
   color: var(--ink-soft);
+}
+
+/* ---- Loading skeleton (§9 state f) — mirrors the chip row + list rows;
+   bar heights mirror the type they stand in for (feed idiom). ---- */
+
+.skWrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  animation: skPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes skPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skWrap {
+    animation: none;
+  }
+}
+
+.skChips {
+  display: flex;
+  gap: var(--s2);
+}
+
+.skChip {
+  width: 88px;
+  height: var(--touch);
+  border-radius: var(--radius-chip);
+  background: var(--recess);
+}
+
+.skBar {
+  background: var(--recess);
+  border-radius: var(--s1);
+}
+
+.skRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3) var(--s2) var(--s3) var(--s4);
+}
+
+.skRow + .skRow {
+  border-top: 1px solid var(--hairline);
+}
+
+.skCopy {
+  flex: 1;
+  min-width: 0;
+}
+
+.skName {
+  width: 45%;
+  height: 16px;
+}
+
+.skMeta {
+  width: 30%;
+  height: 13px;
+  margin-top: var(--s1);
+}
+
+.skWatch {
+  width: 70%;
+  height: 13px;
+  margin-top: var(--s1);
+}
+
+.skHeart {
+  flex: none;
+  width: var(--touch);
+  height: var(--touch);
+  border-radius: 50%;
+  background: var(--recess);
 }
 
 /* ---- load failure ---- */

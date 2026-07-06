@@ -101,7 +101,27 @@ export async function getFeed(params: {
   kid_ok?: boolean;
   limit?: number;
 }): Promise<FeedResponse> {
-  if (MOCK) return mocked((await fixtures()).mockFeed);
+  if (MOCK) {
+    // The mock mirrors the server's filter semantics — otherwise the
+    // drive/dogs/kids chips are inert in the mode the founder reviews and
+    // the count line lies (the count line owns the honesty, docs/04 §4).
+    const { mockFeed } = await fixtures();
+    const verb = params.activity?.trim().toLowerCase();
+    const cards = mockFeed.cards.filter((c) => {
+      if (params.radius_km !== undefined && c.distance_km > params.radius_km)
+        return false;
+      if (params.dog_ok && c.dog_ok !== true) return false;
+      if (params.kid_ok && c.kid_ok !== true) return false;
+      if (
+        verb &&
+        !c.activity_name.toLowerCase().includes(verb) &&
+        !c.activity_id.toLowerCase().includes(verb)
+      )
+        return false;
+      return true;
+    });
+    return mocked({ ...mockFeed, count: cards.length, cards });
+  }
   return request<FeedResponse>(`/feed?${query(params)}`);
 }
 
@@ -192,12 +212,28 @@ export async function postEvent(event: EventIn): Promise<EventOut> {
 // ---------------------------------------------------------------------------
 
 export async function requestMagicLink(email: string): Promise<{ sent: boolean }> {
-  if (MOCK) return mocked({ sent: true });
+  if (MOCK) {
+    // Sentinel: any @fail.test address rehearses the send-failure state —
+    // the fixture client otherwise never rejects (state-matrix idiom).
+    if (email.trim().toLowerCase().endsWith("@fail.test")) {
+      await mocked(undefined);
+      throw new ApiError(502, "mail relay unavailable");
+    }
+    return mocked({ sent: true });
+  }
   return post<{ sent: boolean }>("/auth/magic-link", { email });
 }
 
 export async function verifyToken(token: string): Promise<UserOut> {
-  if (MOCK) return mocked((await fixtures()).mockUser);
+  if (MOCK) {
+    // Sentinels: /auth/verify?token=expired (or =invalid) rehearses the
+    // failure landing — the fixture client otherwise always signs in.
+    if (token === "expired" || token === "invalid") {
+      await mocked(undefined);
+      throw new ApiError(400, "invalid or expired token");
+    }
+    return mocked((await fixtures()).mockUser);
+  }
   return post<UserOut>("/auth/verify", { token });
 }
 

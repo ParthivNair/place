@@ -1,0 +1,20 @@
+/* The one toast (§9 state e) — quiet card chrome fixed above the safe
+   area, auto-dismissing. Moved verbatim from the feed's saved-for-Sunday
+   one-off so every surface shares the treatment. */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--s5) + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 30; /* above sheets' scrims (z-index 20) */
+  width: max-content;
+  max-width: min(416px, calc(100vw - var(--s8)));
+  padding: var(--s3) var(--s4);
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  font-size: var(--text-sub);
+  color: var(--ink);
+}
