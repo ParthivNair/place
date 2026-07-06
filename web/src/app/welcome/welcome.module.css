@@ -1,0 +1,198 @@
+/* No synced spec card exists for onboarding (design/UI-DRAFT-BRIEF.md §8 is
+   the source); card chrome follows the AlertCard idiom (verify.module.css
+   precedent), the field follows MagicLinkSheet. Every value is a token from
+   src/app/tokens.css. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.stepMeta {
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+
+.card {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s5) var(--s4);
+}
+
+/* P5 is a big-type commitment: onboarding headlines take the 20px size
+   (the feed h1 precedent), not the 18px section head. */
+.title {
+  font-size: var(--text-place);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.lead {
+  margin-top: var(--s2);
+  font-size: var(--text-body);
+  line-height: var(--leading);
+  color: var(--ink-soft);
+}
+
+/* ---- privacy wells ---- */
+
+.well {
+  margin-top: var(--s4);
+  background: var(--recess);
+  border-radius: var(--radius-ctl);
+  padding: var(--s3) var(--s4);
+}
+
+/* "never collected" is the reassurance — it takes the quiet forest tint. */
+.wellNever {
+  background: var(--forest-tint);
+}
+
+.wellLabel {
+  font-size: var(--text-meta);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.wellLabelNever {
+  color: var(--forest);
+}
+
+.facts {
+  list-style: none;
+  margin: var(--s2) 0 0;
+  padding: 0;
+  font-size: var(--text-body);
+  line-height: var(--leading);
+  color: var(--ink);
+}
+
+.facts > li + li {
+  margin-top: var(--s2);
+}
+
+/* ---- ask states ---- */
+
+/* Grant confirmations share the verified tint; denial fallbacks stay quiet
+   body copy — a denial is a state, never an error (docs/04 §4 spirit). */
+.confirm {
+  margin-top: var(--s4);
+  background: var(--forest-tint);
+  border-radius: var(--radius-ctl);
+  padding: var(--s3) var(--s4);
+  font-size: var(--text-body);
+  line-height: var(--leading);
+  color: var(--forest);
+}
+
+.fallback {
+  margin-top: var(--s4);
+  font-size: var(--text-body);
+  line-height: var(--leading);
+  color: var(--ink-soft);
+}
+
+.metaNote {
+  margin-top: var(--s3);
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+
+/* ---- manual neighborhood entry (MagicLinkSheet field idiom) ---- */
+
+.form {
+  margin-top: var(--s3);
+}
+
+.field {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  appearance: none;
+  min-height: 48px;
+  padding: 0 var(--s4);
+  background: var(--recess);
+  border: var(--border);
+  border-radius: var(--radius-ctl);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  color: var(--ink);
+}
+
+.field::placeholder {
+  color: var(--ink-faint);
+  opacity: 1;
+}
+
+.field:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
+}
+
+/* ---- iOS install instructions ---- */
+
+.steps {
+  margin: var(--s4) 0 0;
+  padding-left: var(--s5);
+  font-size: var(--text-body);
+  line-height: var(--leading);
+  color: var(--ink);
+}
+
+.steps > li + li {
+  margin-top: var(--s2);
+}
+
+/* ---- done recap ---- */
+
+.recap {
+  list-style: none;
+  margin: var(--s4) 0 0;
+  padding: 0;
+}
+
+.recap > li + li {
+  border-top: 1px solid var(--hairline);
+}
+
+.recapRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s3) 0;
+}
+
+.recapKey {
+  font-size: var(--text-meta);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.recapVal {
+  font-size: var(--text-sub);
+  line-height: var(--leading);
+  color: var(--ink);
+  text-align: right;
+}
+
+/* ---- actions ---- */
+
+.actions {
+  margin-top: var(--s4);
+}
+
+.quietRow {
+  margin-top: var(--s1);
+  display: flex;
+  justify-content: center;
+}

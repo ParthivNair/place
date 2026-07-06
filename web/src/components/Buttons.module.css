@@ -1,0 +1,86 @@
+/* Spec: design/components/buttons.html (.btn / .btn-primary / .btn-tertiary /
+   .save-glyph). Every value is a token from src/app/tokens.css. */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.2;
+  border: none;
+  border-radius: var(--radius-ctl);
+  min-height: 48px;
+  padding: 0 var(--s4);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.primary {
+  width: 100%;
+  background: var(--forest);
+  color: var(--card);
+  font-size: var(--text-body);
+}
+
+.primary:hover:enabled,
+.primary:active:enabled {
+  background: var(--forest-deep);
+}
+
+.primary:disabled {
+  background: var(--recess);
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+/* Declared after .btn so its 44px min-height wins, mirroring the spec's
+   `class="btn-tertiary btn"` cascade. text-decoration covers the <a> render. */
+.tertiary {
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--ink-soft);
+  font-size: var(--text-sub);
+  font-weight: 600;
+  min-height: var(--touch);
+  padding: 0 var(--s2);
+  border-radius: var(--radius-ctl);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.saveHeart {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: var(--touch);
+  min-height: var(--touch);
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-ctl);
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.heart {
+  font-size: 17px; /* spec .save-glyph */
+  line-height: 1;
+  color: var(--ink-soft);
+}
+
+.heartSaved {
+  color: var(--forest);
+}
+
+/* The spec's "no outline" is the resting state; keyboard focus still needs
+   a visible ring. */
+.btn:focus-visible,
+.saveHeart:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
+}

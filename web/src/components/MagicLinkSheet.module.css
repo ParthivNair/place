@@ -1,0 +1,156 @@
+/* No synced spec card exists for auth (design/prompts/07-auth.txt is the
+   source); sheet chrome follows the card idiom (AlertCard) at bottom-sheet
+   position. Every value is a token from src/app/tokens.css; the scrim's
+   rgb derives from --ink, the same basis --shadow-card uses. */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 20; /* above the sticky header (z-index 10) */
+  background: rgba(28, 43, 37, 0.4);
+}
+
+.sheet {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 21;
+  width: 100%;
+  max-width: 448px; /* the .shell app column */
+  box-sizing: border-box;
+  background: var(--card);
+  border: var(--border);
+  border-bottom: none;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  box-shadow: var(--shadow-card);
+  padding: var(--s5) var(--s4) calc(var(--s6) + env(safe-area-inset-bottom, 0px));
+}
+
+.title {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+/* Focused programmatically when the sent state lands — not an interactive
+   element, so no ring. */
+.title:focus {
+  outline: none;
+}
+
+/* Returning-user softener — quiet, never a second pitch. */
+.soft {
+  margin-top: var(--s1);
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+}
+
+.form {
+  margin-top: var(--s4);
+}
+
+.field {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  appearance: none;
+  min-height: 48px;
+  padding: 0 var(--s4);
+  background: var(--recess);
+  border: var(--border);
+  border-radius: var(--radius-ctl);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  color: var(--ink);
+}
+
+.field::placeholder {
+  color: var(--ink-faint);
+  opacity: 1;
+}
+
+.field:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
+}
+
+.primaryRow {
+  margin-top: var(--s3);
+}
+
+.quietRow {
+  margin-top: var(--s1);
+  display: flex;
+  justify-content: center;
+}
+
+.note {
+  margin-top: var(--s2);
+  font-size: var(--text-body);
+  line-height: var(--leading);
+  color: var(--ink);
+}
+
+.addr {
+  font-weight: 600;
+}
+
+.meta {
+  margin-top: var(--s2);
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+
+/* .data is 0.94em; inside 13px meta lines pin it back to the 13px hard
+   floor (waterfalls.module.css idiom — same "15 minutes" line as the
+   ranker's email sheet). */
+.meta :global(.data) {
+  font-size: var(--text-meta);
+}
+
+.error {
+  margin-top: var(--s2);
+  font-size: var(--text-sub);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+/* resend left, Done right — both quiet; the negative margins pull the
+   buttons' own 8px pads back to the card's text edge (AlertCard idiom). */
+.resendRow {
+  margin-top: var(--s3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-left: calc(-1 * var(--s2));
+  margin-right: calc(-1 * var(--s2));
+}
+
+/* Quiet tertiary idiom, local because the shared TertiaryButton carries no
+   disabled state and the 60s countdown needs one. */
+.resend {
+  appearance: none;
+  background: none;
+  border: none;
+  min-height: var(--touch);
+  padding: 0 var(--s2);
+  border-radius: var(--radius-ctl);
+  font-family: var(--font-ui);
+  font-size: var(--text-sub);
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.resend:disabled {
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+.resend:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
+}

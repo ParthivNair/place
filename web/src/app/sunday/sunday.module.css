@@ -1,0 +1,368 @@
+/* Sunday verdict sheet (Surface 4, route /sunday). Anatomy from
+   design/surfaces/sunday-push.html (.sheet-head / .qblock / .verdicts /
+   .mini-card / .btn-feed); verdict button treatment mirrors
+   design/components/verdict-controls.html. Tokens only — hairline borders
+   are the only chrome. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s5);
+}
+
+/* ---- Page head — quiet chrome above the sheet ---- */
+
+.head {
+  padding-top: var(--s2);
+}
+
+/* Pinned at 20px — the same size place names wear, without the caps
+   (feed .title idiom). */
+.title {
+  font-size: var(--text-place);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.sub {
+  margin-top: var(--s1);
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+
+/* .data is 0.94em; inside a 13px meta line that would dip below the hard
+   floor (--text-meta) — pin it back (GoingSheet .reason precedent). */
+.sub :global(.data),
+.drive :global(.data),
+.nwMeta :global(.data) {
+  font-size: var(--text-meta);
+}
+
+/* ---- Shared card shell (spec .pcard) ---- */
+
+.sheet {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s4);
+}
+
+.sheetHead {
+  padding-bottom: var(--s1);
+}
+
+.sheetTitle {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.sheetSub {
+  margin-top: 2px;
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+}
+
+/* ---- Question blocks ---- */
+
+.qblock {
+  margin-top: var(--s3);
+  padding-top: var(--s3);
+  border-top: var(--border);
+}
+
+.qEyebrow {
+  font-size: var(--text-meta);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--track-place);
+  color: var(--ink-faint);
+}
+
+.qText {
+  margin-top: var(--s1);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.verdicts {
+  display: flex;
+  gap: var(--s2);
+  margin-top: var(--s3);
+}
+
+.vbtn {
+  appearance: none;
+  flex: 1;
+  min-height: var(--touch);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s1);
+  padding: 0 var(--s2);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-ctl);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.vbtn:disabled {
+  cursor: default;
+}
+
+.vGlyph {
+  font-size: 15px;
+}
+
+/* Answered states — one filled tint, siblings recede to meta ink
+   (verdict-controls spec). */
+.isConfirm {
+  background: var(--verified-tint);
+  border-color: var(--verified);
+  color: var(--verified);
+}
+
+.isDeny {
+  background: var(--hazard-tint);
+  border-color: var(--hazard);
+  color: var(--hazard);
+}
+
+/* No answered-changed variant in the design card; --forest-tint is the
+   canonical "selected chip, quiet emphasis" tint. */
+.isChanged {
+  background: var(--forest-tint);
+  border-color: var(--forest);
+  color: var(--forest);
+}
+
+.isReceded {
+  color: var(--ink-faint);
+}
+
+/* Per-question receipt: snapshot confirm / re-check / already-logged. */
+.note {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  margin-top: var(--s3);
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+
+.noteMark {
+  flex: none;
+  font-weight: 700;
+}
+
+.ok {
+  color: var(--verified);
+}
+
+.re {
+  color: var(--hazard);
+}
+
+.ch {
+  color: var(--forest);
+}
+
+/* Quiet retry (cross-cutting states): amber ink, never hazard rust —
+   --hazard is reserved for hazard-class content framing. */
+.qError {
+  margin-top: var(--s3);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  color: var(--fading);
+}
+
+/* Deny framing, no-penalty — meta-quiet, under the open questions. */
+.noPenalty {
+  margin-top: var(--s3);
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+
+/* ---- Next weekend (spec .nw-head-row / .mini-card / .btn-feed) ---- */
+
+.quiet {
+  margin-bottom: var(--s3);
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+}
+
+.nwRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+.nwHead {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.nwMeta {
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.mini {
+  margin-top: var(--s3);
+  border: var(--border);
+  border-radius: var(--radius-ctl);
+  padding: var(--s3);
+}
+
+.miniIdentity {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+/* The mini card steps the 20px place name down one size (spec
+   .place-name.mini). */
+.miniName {
+  font-size: var(--text-lg);
+}
+
+.drive {
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.miniProv {
+  margin-top: var(--s2);
+}
+
+/* Degraded feed: "live … unavailable", never "conditions bad". */
+.nwDown {
+  margin-top: var(--s3);
+  font-size: var(--text-sub);
+  font-weight: 600;
+  color: var(--unknown);
+}
+
+.feedAction {
+  margin-top: var(--s3);
+}
+
+/* ---- Error notice (place-page .notice idiom) ---- */
+
+.notice {
+  text-align: center;
+  padding: var(--s8) var(--s4);
+}
+
+.noticeLead {
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+
+.noticeAction {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--s2);
+}
+
+/* ---- Loading skeleton — mirrors the sheet zones (feed idiom) ---- */
+
+.skBar {
+  background: var(--recess);
+  border-radius: var(--s1);
+}
+
+.skSheet {
+  animation: skPulse 1.6s ease-in-out infinite;
+}
+
+/* Bar heights mirror the type they stand in for (18/15/13). */
+.skTitle {
+  width: 60%;
+  height: 18px;
+}
+
+.skSub {
+  width: 40%;
+  height: 15px;
+  margin-top: var(--s2);
+}
+
+.skQ {
+  margin-top: var(--s3);
+  padding-top: var(--s3);
+  border-top: var(--border);
+}
+
+.skEyebrow {
+  width: 30%;
+  height: 13px;
+}
+
+.skQuestion {
+  width: 70%;
+  height: 18px;
+  margin-top: var(--s2);
+}
+
+.skVerdicts {
+  display: flex;
+  gap: var(--s2);
+  margin-top: var(--s3);
+}
+
+.skBtn {
+  flex: 1;
+  height: var(--touch);
+  border-radius: var(--radius-ctl);
+  background: var(--recess);
+}
+
+.miniSk {
+  margin-top: var(--s3);
+  border: var(--border);
+  border-radius: var(--radius-ctl);
+  padding: var(--s3);
+  animation: skPulse 1.6s ease-in-out infinite;
+}
+
+.skMiniTitle {
+  width: 55%;
+  height: 18px;
+}
+
+.skMiniLead {
+  width: 80%;
+  height: 15px;
+  margin-top: var(--s2);
+}
+
+@keyframes skPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skSheet,
+  .miniSk {
+    animation: none;
+  }
+}

@@ -1,0 +1,90 @@
+/* Claim row — mirrors design/components/claim-row.html: copy first, the
+   one-tap verdict cluster after (VerdictControls compact). The cluster
+   wears word labels (glyph-set rule — no ✕/~ exist), so it wraps to its
+   own line below the copy instead of the spec card's 44px squares on the
+   right. Edit tokens.css first, then re-sync here. */
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s3);
+}
+
+.copy {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.claim {
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+/* Extraction-only: not yet field truth. */
+.isUntrusted {
+  color: var(--ink-soft);
+}
+
+.meta {
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+.isUnknown {
+  color: var(--unknown);
+}
+
+.ok {
+  color: var(--verified);
+  font-weight: 600;
+}
+
+/* Source link-out. Inline vertical padding paints an enlarged tap area
+   toward the 44px minimum without stretching the 13px meta line box; it
+   overlaps only non-interactive copy above and below. */
+.srcLink {
+  color: inherit;
+  font-weight: 600;
+  padding: var(--s4) 0;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s1);
+  margin-top: var(--s2);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  line-height: 1.3;
+  padding: 2px 10px;
+  border-radius: var(--radius-chip);
+}
+
+.chipFading {
+  background: var(--fading-tint);
+  color: var(--fading);
+}
+
+.chipHazard {
+  background: var(--hazard-tint);
+  color: var(--hazard);
+}
+
+.chipUnknown {
+  background: var(--unknown-tint);
+  color: var(--unknown);
+}
+
+/* (Assumption-of-risk moved to the affordance foot's SafetyLine — the
+   server string renders once per section, decision 3.) */

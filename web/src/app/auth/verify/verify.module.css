@@ -1,0 +1,130 @@
+/* No synced spec card exists for auth (design/prompts/07-auth.txt is the
+   source); card chrome follows the AlertCard idiom. Every value is a token
+   from src/app/tokens.css. */
+
+.checking {
+  padding: var(--s6) 0;
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+}
+
+.card {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s5) var(--s4);
+}
+
+.headline {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.identity {
+  margin-top: var(--s2);
+  font-size: var(--text-body);
+  color: var(--ink);
+}
+
+.name {
+  font-weight: 600;
+}
+
+.sep {
+  color: var(--ink-faint);
+}
+
+.addr {
+  color: var(--ink-soft);
+}
+
+/* Receipt for the finished (or still-waiting) intercepted intent. */
+.intentNote {
+  margin-top: var(--s3);
+  font-size: var(--text-sub);
+  color: var(--forest);
+  font-weight: 600;
+}
+
+.failNote {
+  margin-top: var(--s2);
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+}
+
+.session {
+  margin-top: var(--s1);
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+
+/* .data is 0.94em; inside the 13px session line pin it back to the 13px
+   hard floor (saves/sunday/waterfalls pin idiom). */
+.session :global(.data) {
+  font-size: var(--text-meta);
+}
+
+.action {
+  margin-top: var(--s4);
+}
+
+.quietRow {
+  margin-top: var(--s1);
+  display: flex;
+  justify-content: center;
+}
+
+/* ---- Checking (§9 state f) — the receipt card's anatomy while the
+   token verifies: headline-slot line, identity/session bars, 48px
+   primary block (feed skeleton idiom). ---- */
+
+.checkLead {
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+}
+
+.skBar {
+  background: var(--recess);
+  border-radius: var(--s1);
+  animation: skPulse 1.6s ease-in-out infinite;
+}
+
+.skIdentity {
+  width: 60%;
+  height: 16px;
+  margin-top: var(--s3);
+}
+
+.skSession {
+  width: 45%;
+  height: 13px;
+  margin-top: var(--s2);
+}
+
+.skPrimary {
+  height: 48px;
+  border-radius: var(--radius-ctl);
+  background: var(--recess);
+  margin-top: var(--s4);
+  animation: skPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes skPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skBar,
+  .skPrimary {
+    animation: none;
+  }
+}

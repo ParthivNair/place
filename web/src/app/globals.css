@@ -1,0 +1,96 @@
+@import './tokens.css';
+
+/* Base — "field guide meets instrument panel": warm paper, fir-green ink,
+   hairline borders as the only chrome. Zero webfonts (docs/04 §9); .data
+   and .place-name global classes come from tokens.css. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+figure {
+  margin: 0;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* The app column: single centered mobile-first shell. */
+.shell {
+  max-width: 448px;
+  margin: 0 auto;
+  padding: var(--s4) var(--s4) var(--s8);
+}
+
+/* Decision 13: the seasonal-ranker/SEO pages are the app's only desktop
+   surfaces — one centered column, max ~680px, never a map hero. A route
+   opts in by setting data-shell-wide on its root element; the shell
+   itself widens, so sheets and fixed overlays keep their containing
+   block (no transforms, no negative-margin breakouts). */
+@media (min-width: 720px) {
+  .shell:has([data-shell-wide]) {
+    max-width: 680px;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
+}
+
+/* Control resets — every tap target honors the 44px minimum. */
+button {
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  min-height: var(--touch);
+  min-width: var(--touch);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  min-height: var(--touch);
+}

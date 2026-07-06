@@ -1,0 +1,66 @@
+/* Condition badge — chip-shaped status pill worn by cards, place pages, and
+   alerts. Anatomy: dot/glyph + label + optional .data value. State color
+   pairs come only from the five condition-state tokens. */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--radius-chip);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* Badge runs at 13px — the hard minimum — so inner .data (0.94em) would
+   fall below it; pin to the 13px meta size. */
+.badge :global(.data) {
+  font-size: var(--text-meta);
+}
+
+.dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* unknown: signal absent, ring only */
+.dotHollow {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+
+/* ✓ — verification only */
+.glyph {
+  flex: none;
+  font-weight: 700;
+}
+
+.live {
+  background: var(--live-tint);
+  color: var(--live);
+}
+
+.fading {
+  background: var(--fading-tint);
+  color: var(--fading);
+}
+
+.unknown {
+  background: var(--unknown-tint);
+  color: var(--unknown);
+}
+
+.hazard {
+  background: var(--hazard-tint);
+  color: var(--hazard);
+}
+
+.verified {
+  background: var(--verified-tint);
+  color: var(--verified);
+}

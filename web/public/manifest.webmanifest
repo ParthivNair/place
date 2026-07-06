@@ -1,0 +1,35 @@
+{
+  "name": "Place",
+  "short_name": "Place",
+  "description": "What's good right now, near you.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FBFAF6",
+  "theme_color": "#29583F",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

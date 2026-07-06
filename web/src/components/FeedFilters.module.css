@@ -1,0 +1,70 @@
+/* Spec: design/surfaces/feed-filters.html (.browse / .filter / .chips /
+   .chip). Every value is a token from src/app/tokens.css. The spec's
+   margin-top on .browse belonged to the card title above it; here the
+   first element carries no outer margin — the owning surface spaces it. */
+
+.browse {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  appearance: none;
+  min-height: 48px;
+  padding: 0 var(--s4);
+  background: var(--recess);
+  border: var(--border);
+  border-radius: var(--radius-ctl);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  color: var(--ink);
+}
+
+.browse::placeholder {
+  color: var(--ink-faint);
+  opacity: 1;
+}
+
+.filter {
+  margin-top: var(--s4);
+}
+
+.filterLabel {
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+  margin-bottom: var(--s1);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.chip {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch);
+  padding: 0 var(--s4);
+  border: var(--border);
+  border-radius: var(--radius-chip);
+  background: var(--card);
+  font-family: var(--font-ui);
+  font-size: var(--text-sub);
+  font-weight: 500;
+  color: var(--ink-soft);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.isOn {
+  background: var(--forest-tint);
+  border-color: var(--forest-tint);
+  color: var(--forest);
+}
+
+/* The static spec has no focus state; keyboard focus still needs a ring. */
+.browse:focus-visible,
+.chip:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
+}

@@ -1,0 +1,53 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--paper);
+  border-bottom: var(--border);
+}
+
+.inner {
+  max-width: 448px;
+  margin: 0 auto;
+  padding: 0 var(--s4);
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--forest);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+}
+
+.iconLink {
+  width: var(--touch);
+  height: var(--touch);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+  border-radius: var(--radius-ctl);
+}
+
+/* ♡ is the saves glyph — hollow means nothing saved here yet. */
+.heart {
+  font-size: var(--text-lg);
+  line-height: 1;
+}
+
+.accountGlyph {
+  display: block;
+}

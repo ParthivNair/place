@@ -1,0 +1,337 @@
+/* This Weekend feed (Surface 1, route /). Header-card anatomy from
+   design/surfaces/feed-filters.html (.feed-top / .feed-sub / .live-dot /
+   .feed-count); card stack is ExperienceCard. Tokens only — hairline
+   borders are the only chrome. */
+
+.feedTop {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s5) var(--s4);
+}
+
+/* Pinned at 20px — the same size place names wear, without the caps. */
+.title {
+  font-size: var(--text-place);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.sub {
+  margin-top: var(--s1);
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+
+.liveDot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--live);
+  box-shadow: 0 0 0 3px var(--live-tint);
+}
+
+/* Quiet location row. The whole line is a 44px flex row so the inline
+   button meets the touch floor without inflating a 13px line box. */
+.loc {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  min-height: var(--touch);
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+
+.locBtn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--s1);
+  font-family: var(--font-ui);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  color: var(--forest);
+}
+
+.locBtn:disabled {
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+/* State (e): manual neighborhood entry — one quiet inline row, no card. */
+.locForm {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.locField {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--touch);
+  padding: 0 var(--s3);
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-ctl);
+  font-family: var(--font-ui);
+  font-size: var(--text-body); /* ≥16px keeps iOS Safari from zooming */
+  color: var(--ink);
+}
+
+.locField::placeholder {
+  color: var(--ink-faint);
+}
+
+/* FeedFilters carries no outer margin; the owning surface spaces it.
+   The 44px .loc row above already reads as whitespace, so s2 suffices. */
+.filters {
+  margin-top: var(--s2);
+}
+
+/* ---- One-time /welcome doorway — a line, not a card ---- */
+
+.welcomeLine {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: var(--touch);
+  margin-top: var(--s3);
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+
+.welcomeCopy {
+  padding-left: var(--s2);
+}
+
+.welcomeDismiss {
+  margin-left: auto;
+  padding: 0 var(--s2);
+  font-family: var(--font-ui);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  color: var(--ink-faint);
+}
+
+/* ---- Short-feed honesty note (spec .feed-count) ---- */
+
+.count {
+  margin: var(--s3) 0;
+  text-align: center;
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+}
+
+.stack {
+  display: grid;
+  gap: var(--s4);
+}
+
+/* ---- Zero-card state — a short honest feed beats a long static one ---- */
+
+.empty {
+  text-align: center;
+  padding: var(--s8) var(--s4);
+}
+
+.emptyLead {
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.emptySub {
+  margin-top: var(--s1);
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+}
+
+/* State (d): the narrowing verb owns its zero — active chip + clear. */
+.emptyFilter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  margin-bottom: var(--s3);
+}
+
+.emptyChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 var(--s3);
+  border-radius: var(--radius-chip);
+  background: var(--forest-tint);
+  font-size: var(--text-sub);
+  font-weight: 500;
+  color: var(--forest);
+}
+
+.emptyClear {
+  padding: 0 var(--s2);
+  font-family: var(--font-ui);
+  font-size: var(--text-sub);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+/* ---- Quiet footer doorway to the public ranker ---- */
+
+.footLink {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--s5);
+}
+
+/* The saved-for-Sunday toast moved to the shared treatment —
+   components/Toast.module.css (§9 state e, one toast for every surface). */
+
+/* ---- Degraded state: "live … unavailable", never "conditions bad" ---- */
+
+.degraded {
+  text-align: center;
+  padding: var(--s8) var(--s4) var(--s4);
+}
+
+.degradedLead {
+  font-size: var(--text-sub);
+  font-weight: 600;
+  color: var(--unknown);
+}
+
+.degradedGlyph {
+  margin-right: var(--s2);
+}
+
+.degradedAction {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--s2);
+}
+
+/* ---- Loading skeleton — mirrors the ExperienceCard zones ---- */
+
+.skStack {
+  display: grid;
+  gap: var(--s4);
+  margin-top: var(--s4);
+}
+
+.skCard {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s4);
+  animation: skPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes skPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skCard {
+    animation: none;
+  }
+}
+
+.skBar {
+  background: var(--recess);
+  border-radius: var(--s1);
+}
+
+.skIdentity {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+.skIdMain {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Bar heights mirror the type they stand in for (20/15/13). */
+.skTitle {
+  width: 55%;
+  height: 20px;
+}
+
+.skContext {
+  width: 35%;
+  height: 13px;
+  margin-top: var(--s2);
+}
+
+.skDrive {
+  width: 72px;
+  height: 13px;
+}
+
+/* Provenance rows: the 22px glyph gutter + 1fr grid of ProvenanceLine. */
+.skProvRow {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  column-gap: var(--s2);
+  align-items: start;
+  margin-top: var(--s3);
+}
+
+.skGlyph {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--recess);
+}
+
+.skLead {
+  width: 85%;
+  height: 15px;
+}
+
+.skDetail {
+  width: 60%;
+  height: 13px;
+  margin-top: var(--s2);
+}
+
+.skLeadShort {
+  width: 45%;
+  height: 15px;
+}
+
+.skStrip {
+  width: 70%;
+  height: 15px;
+  margin-top: var(--s3);
+}
+
+.skActions {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin-top: var(--s3);
+}
+
+.skPrimary {
+  flex: 1;
+  height: 48px;
+  border-radius: var(--radius-ctl);
+  background: var(--recess);
+}
+
+.skTertiary {
+  width: 120px;
+  height: 15px;
+}

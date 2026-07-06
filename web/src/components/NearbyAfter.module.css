@@ -1,0 +1,100 @@
+/* Styles mirror design/surfaces/nearby-after.html — edit tokens.css first,
+   then re-sync here. */
+
+.module {
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.head {
+  padding: var(--s4) var(--s4) var(--s3);
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* Sentence case — uppercase is for place names only */
+.title {
+  margin: 0;
+  font-size: var(--text-sub);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--ink-soft);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.list > li + li {
+  border-top: 1px solid var(--hairline);
+}
+
+.row {
+  appearance: none;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-height: var(--touch);
+  padding: var(--s1) var(--s4);
+  font-family: var(--font-ui);
+  line-height: var(--leading);
+  text-align: left;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: -2px;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-body);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  font-size: var(--text-sub);
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.meta :global(.data) {
+  color: var(--ink-soft);
+}
+
+.chev {
+  color: var(--ink-faint);
+  font-size: var(--text-body);
+  line-height: 1;
+}
+
+/* Tapped state: quiet forest-tint emphasis, no chevron — the row is now a
+   receipt, not a control. */
+.rowNoted {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-height: var(--touch);
+  padding: var(--s1) var(--s4);
+  background: var(--forest-tint);
+}
+
+.notedMark {
+  font-size: var(--text-sub);
+  font-weight: 600;
+  color: var(--forest);
+  white-space: nowrap;
+}

@@ -1,0 +1,95 @@
+/* Provenance line — the brand element (docs/00 §1). Anatomy per
+   design/components/provenance-line.html: 22px glyph gutter, bold lead in
+   the state color, detail stays ink-soft. No bare ranks (docs/02 §2);
+   stale renders "as of", degraded renders "live … unavailable" (docs/04 §4). */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.compact {
+  gap: var(--s2);
+}
+
+.prov {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  column-gap: var(--s1);
+}
+
+/* Static claim: the condition system is silent — no glyph column. */
+.noGlyph {
+  grid-template-columns: 1fr;
+}
+
+.glyph {
+  font-size: var(--text-sub);
+  line-height: 1.35;
+  padding-top: 1px;
+  text-align: left;
+}
+
+.lead {
+  font-size: var(--text-body);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+}
+
+.detail {
+  margin-top: var(--s1);
+  font-size: var(--text-sub);
+  line-height: var(--leading);
+  color: var(--ink-soft);
+}
+
+.fallback,
+.credit {
+  font-size: var(--text-sub);
+  line-height: var(--leading);
+  color: var(--ink-soft);
+}
+
+/* Compact stays above the floors: lead 15px, meta 13px (docs/07 §2 P5). */
+.compact .lead {
+  font-size: var(--text-sub);
+}
+
+.compact .detail,
+.compact .fallback,
+.compact .credit {
+  font-size: var(--text-meta);
+}
+
+/* State colorways — glyph + lead only; detail stays ink-soft. */
+.isLive .glyph,
+.isLive .lead {
+  color: var(--live);
+}
+
+.isFading .glyph,
+.isFading .lead {
+  color: var(--fading);
+}
+
+.isUnknown .glyph,
+.isUnknown .lead {
+  color: var(--unknown);
+}
+
+.isStatic .lead {
+  color: var(--ink);
+}
+
+.check {
+  color: var(--verified);
+}
+
+/* Named verifier credit: quiet emphasis in forest, 600 — recognition,
+   never points (docs/02 §3, docs/00 §6). */
+.verifier {
+  color: var(--forest);
+  font-weight: 600;
+}

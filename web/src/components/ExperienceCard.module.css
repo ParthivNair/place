@@ -1,0 +1,91 @@
+/* Experience card — the atomic unit of the feed (docs/02 §3), assembled
+   from the design-system leaves. Spec: design/surfaces/experience-card.html.
+   Photo-less at launch (UI-DRAFT-BRIEF decision 4): the provenance block is
+   the visual hero, so the save heart moves from the photo corner to the
+   identity row. Zone rhythm is the spec's: s3 between zones. */
+
+.card {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s4);
+  overflow: hidden;
+}
+
+/* ---- Identity: place + kind context + drive time + save ---- */
+
+.identity {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+.idMain {
+  flex: 1;
+  min-width: 0; /* long uppercase names wrap instead of pushing the aside */
+}
+
+.context {
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+  margin-top: 2px; /* spec .context */
+}
+
+.aside {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  /* Bleed the 44px touch target into the card padding so the 17px heart
+     glyph sits optically on the title line, not 14px below it. */
+  margin: calc(-1 * var(--s2)) calc(-1 * var(--s2)) 0 0;
+}
+
+.drive {
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* .data is 0.94em; inside a 13px meta line that would dip below the 13px
+   hard floor (--text-meta) — pin it back to the floor (spec .drive .data). */
+.drive :global(.data) {
+  font-size: var(--text-meta);
+}
+
+/* ---- Zone spacing (leaves own their internals; slots own the rhythm) ---- */
+
+.prov {
+  margin-top: var(--s3);
+}
+
+/* Hazard-gated chip — only beside hazard-class affordances (docs/02 §5):
+   it sits directly above the strip that names the affordance it gates. */
+.hazardChip {
+  margin-top: var(--s2);
+}
+
+.strip {
+  margin-top: var(--s3);
+}
+
+.foot {
+  margin-top: var(--s3);
+}
+
+/* ---- Exactly two actions — "I'm going" is the only conversion ---- */
+
+.actions {
+  display: flex;
+  gap: var(--s3);
+  margin-top: var(--s3);
+}
+
+/* PrimaryButton is width:100% standalone; the slot gives it the spec's
+   .actions flex:1 while the tertiary keeps its intrinsic width. */
+.primarySlot {
+  flex: 1;
+  min-width: 0;
+}

@@ -1,0 +1,119 @@
+/* Styles mirror design/components/verdict-controls.html — edit tokens.css
+   first, then re-sync here. */
+
+.verdicts {
+  display: flex;
+  gap: var(--s2);
+  margin-top: var(--s3);
+}
+
+.btn {
+  appearance: none;
+  flex: 1;
+  min-height: var(--touch);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s1);
+  padding: 0 var(--s2);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-ctl);
+  cursor: pointer;
+}
+
+.btn:disabled {
+  cursor: default;
+}
+
+.glyph {
+  font-size: var(--text-sub);
+}
+
+/* Answered states — one filled tint, siblings recede to meta ink */
+.isConfirm {
+  background: var(--verified-tint);
+  border-color: var(--verified);
+  color: var(--verified);
+}
+
+.isDeny {
+  background: var(--hazard-tint);
+  border-color: var(--hazard);
+  color: var(--hazard);
+}
+
+/* No answered-changed variant in the design card; --forest-tint is the
+   canonical "selected chip, quiet emphasis" tint. */
+.isChanged {
+  background: var(--forest-tint);
+  border-color: var(--forest);
+  color: var(--forest);
+}
+
+.isReceded {
+  color: var(--ink-faint);
+}
+
+.micro {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  margin-top: var(--s3);
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+  line-height: 1.45;
+  margin-bottom: 0;
+}
+
+.microMark {
+  flex: none;
+  font-weight: 700;
+}
+
+.ok {
+  color: var(--verified);
+}
+
+.re {
+  color: var(--hazard);
+}
+
+.ch {
+  color: var(--forest);
+}
+
+/* Compact inline form, on claim rows. Word labels at the 13px meta floor
+   (the single glyph set has no deny/changed mark — see VerdictControls.tsx);
+   min-height keeps the 44px touch target. */
+.miniVerdicts {
+  display: flex;
+  gap: var(--s2);
+  flex: none;
+}
+
+.mini {
+  appearance: none;
+  min-height: var(--touch);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--s3);
+  font-family: var(--font-ui);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  color: var(--ink-soft);
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-ctl);
+  cursor: pointer;
+}
+
+.mini:disabled {
+  cursor: default;
+}

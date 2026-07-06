@@ -1,0 +1,121 @@
+/* Email capture for the ranker's ♥ (UI-DRAFT-BRIEF §4 conversion moment).
+   Sheet chrome mirrors MagicLinkSheet.module.css — same scrim basis, same
+   448px column even on the desktop rendering (the ask is a mobile-shaped
+   moment; only the ranked column widens). Tokens only. */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 20; /* above the sticky header (z-index 10) */
+  background: rgba(28, 43, 37, 0.4);
+}
+
+.sheet {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 21;
+  width: 100%;
+  max-width: 448px; /* the .shell app column */
+  box-sizing: border-box;
+  background: var(--card);
+  border: var(--border);
+  border-bottom: none;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  box-shadow: var(--shadow-card);
+  padding: var(--s5) var(--s4) calc(var(--s6) + env(safe-area-inset-bottom, 0px));
+}
+
+.title {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+/* Focused programmatically when the sent state lands — not an interactive
+   element, so no ring. */
+.title:focus {
+  outline: none;
+}
+
+.form {
+  margin-top: var(--s4);
+}
+
+.field {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  appearance: none;
+  min-height: 48px;
+  padding: 0 var(--s4);
+  background: var(--recess);
+  border: var(--border);
+  border-radius: var(--radius-ctl);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  color: var(--ink);
+}
+
+.field::placeholder {
+  color: var(--ink-faint);
+  opacity: 1;
+}
+
+.field:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
+}
+
+.primaryRow {
+  margin-top: var(--s3);
+}
+
+/* The one line of reassurance — the whole trust contract of the ask. */
+.reassure {
+  margin-top: var(--s3);
+  text-align: center;
+  font-size: var(--text-meta);
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.note {
+  margin-top: var(--s2);
+  font-size: var(--text-body);
+  line-height: var(--leading);
+  color: var(--ink);
+}
+
+.addr {
+  font-weight: 600;
+}
+
+.meta {
+  margin-top: var(--s2);
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+
+/* .data is 0.94em; inside 13px meta lines pin it back to the 13px hard
+   floor (waterfalls.module.css idiom). */
+.meta :global(.data) {
+  font-size: var(--text-meta);
+}
+
+.error {
+  margin-top: var(--s2);
+  font-size: var(--text-sub);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.doneRow {
+  margin-top: var(--s3);
+  display: flex;
+  justify-content: flex-end;
+  /* Pull the button's own pad back to the text edge (AlertCard idiom). */
+  margin-right: calc(-1 * var(--s2));
+}
