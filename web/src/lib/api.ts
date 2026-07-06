@@ -20,6 +20,7 @@ import type {
   VerdictOut,
 } from "./types";
 import { EVENT_ALIASES } from "./types";
+import { verbNeedle } from "./format";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const MOCK = process.env.NEXT_PUBLIC_MOCK === "1";
@@ -106,7 +107,7 @@ export async function getFeed(params: {
     // drive/dogs/kids chips are inert in the mode the founder reviews and
     // the count line lies (the count line owns the honesty, docs/04 §4).
     const { mockFeed } = await fixtures();
-    const verb = params.activity?.trim().toLowerCase();
+    const verb = params.activity ? verbNeedle(params.activity) : undefined;
     const cards = mockFeed.cards.filter((c) => {
       if (params.radius_km !== undefined && c.distance_km > params.radius_km)
         return false;

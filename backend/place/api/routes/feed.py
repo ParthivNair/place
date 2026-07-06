@@ -106,9 +106,14 @@ async def get_feed(
         "radius_m": radius_km * 1000,
         "limit": limit,
     }
-    if activity is not None:
-        extra.append("AND a.activity_id = :activity")
-        params["activity"] = activity
+    if activity is not None and (verb := activity.strip().lower()):
+        # Verb filter, not an id lookup (docs/07 §1): "trail" must reach
+        # trail_run / Trail run, so match id and display name by substring,
+        # folding a trailing "s" ("trails" -> "trail"). The web client and
+        # its mock (web/src/lib/format.ts verbNeedle) mirror these semantics.
+        needle = verb.removesuffix("s") if len(verb) > 2 else verb
+        extra.append("AND (act.id ILIKE :verb OR act.display_name ILIKE :verb)")
+        params["verb"] = f"%{needle}%"
     if dog_ok:
         extra.append("AND a.dog_ok")
     if kid_ok:
