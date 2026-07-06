@@ -220,3 +220,12 @@ export function windowGlyph(state: "true" | "false" | "unknown"): string {
 export function verdictApiValue(ui: "confirm" | "deny" | "changed"): VerdictLiteral {
   return ui === "deny" ? "refute" : ui;
 }
+
+/* Feed verb needle (docs/07 §1): typed activity text is a verb, not an id —
+   the feed matches it as a substring of activity_id / activity_name, with a
+   trailing "s" folded so "trails" reaches Trail run. Must stay in lockstep
+   with the API's matching (backend routes/feed.py) and the mock in api.ts. */
+export function verbNeedle(verb: string): string {
+  const v = verb.trim().toLowerCase();
+  return v.length > 2 && v.endsWith("s") ? v.slice(0, -1) : v;
+}

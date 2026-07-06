@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { FeedCard, FeedResponse } from "@/lib/types";
 import { ApiError, addSave, getFeed, postEvent, removeSave } from "@/lib/api";
+import { verbNeedle } from "@/lib/format";
 import {
   NEIGHBORHOOD_KEY,
   WELCOME_DONE_KEY,
@@ -246,13 +247,17 @@ export default function Home() {
     router.push(`/places/${card.place_id}`);
   };
 
-  const liveVerb = filters.verb.trim().toLowerCase();
+  const liveVerb = verbNeedle(filters.verb);
   const cards = feed ? feed.cards : [];
   // The API (and the mock, which mirrors its filter semantics) narrows by
   // activity server-side after the 300ms debounce; the live verb also
   // narrows client-side so keystrokes filter instantly.
   const visible = liveVerb
-    ? cards.filter((c) => c.activity_name.toLowerCase().includes(liveVerb))
+    ? cards.filter(
+        (c) =>
+          c.activity_name.toLowerCase().includes(liveVerb) ||
+          c.activity_id.toLowerCase().includes(liveVerb),
+      )
     : cards;
   // The count line owns the honesty: once a client-side verb filter is
   // narrowing, the server count no longer describes what's shown.
