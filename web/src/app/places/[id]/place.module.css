@@ -1,0 +1,264 @@
+/* Place page — Surface 2 (docs/02 §2): a rendering of the graph, not a wiki
+   article. Section anatomy mirrors design/surfaces/place-page-header.html
+   (.section-head / .affordance); condition rows reuse the provenance-line
+   anatomy (22px glyph gutter, lead in the state color, detail ink-soft).
+   Edit tokens.css first, then re-sync here. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+
+.surface {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+/* Spec .section-head — the --s5 top padding restores the header's rhythm
+   (PlacePageHeader carries no bottom padding of its own). */
+.sectionHead {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  padding: var(--s5) var(--s4) var(--s2);
+}
+
+.affordance {
+  padding: var(--s4);
+  border-top: var(--border);
+}
+
+/* ---- Current condition line (compact provenance anatomy) ---- */
+
+.condition {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  column-gap: var(--s1);
+  margin-top: var(--s2);
+}
+
+.glyph {
+  font-size: var(--text-sub);
+  line-height: 1.35;
+  padding-top: 1px;
+}
+
+.lead {
+  font-size: var(--text-sub);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+}
+
+.src {
+  margin-top: var(--s1);
+  font-size: var(--text-meta);
+  line-height: var(--leading);
+  color: var(--ink-soft);
+}
+
+/* .data is 0.94em; inside a 13px line that would dip below the hard floor —
+   pin it back (spec 13px-floor rule). */
+.src :global(.data),
+.readings :global(.data) {
+  font-size: var(--text-meta);
+}
+
+/* State colorways — glyph + lead only; detail stays ink-soft. */
+.isLive .glyph,
+.isLive .lead {
+  color: var(--live);
+}
+
+.isFading .glyph,
+.isFading .lead {
+  color: var(--fading);
+}
+
+.isUnknown .glyph,
+.isUnknown .lead {
+  color: var(--unknown);
+}
+
+/* No-window, never-verified affordance: the condition system is silent. */
+.fallback {
+  margin-top: var(--s2);
+  font-size: var(--text-sub);
+  line-height: var(--leading);
+  color: var(--ink-soft);
+}
+
+/* ---- Verified credit — the only recognition in the product ---- */
+
+.credit {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  column-gap: var(--s1);
+  margin-top: var(--s2);
+}
+
+.check {
+  color: var(--verified);
+}
+
+.creditText {
+  font-size: var(--text-meta);
+  line-height: var(--leading);
+  color: var(--ink-soft);
+}
+
+.verifier {
+  color: var(--forest);
+  font-weight: 600;
+}
+
+/* Tertiary's s2 pad would push its label off the card's text edge
+   (AlertCard precedent). */
+.moreRow {
+  margin-top: var(--s1);
+  margin-left: calc(-1 * var(--s2));
+}
+
+/* ---- Inline-expanding condition detail (UI-DRAFT-BRIEF decision 8) ---- */
+
+.windows {
+  margin-top: var(--s1);
+  padding: var(--s3);
+  background: var(--recess);
+  border-radius: var(--radius-ctl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.windowHead {
+  font-size: var(--text-sub);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.gateMark {
+  font-weight: 500;
+  color: var(--ink-faint);
+}
+
+.windowMeta {
+  margin-top: 2px; /* spec's own 2px context offset */
+  font-size: var(--text-meta);
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+.readings {
+  list-style: none;
+  margin: var(--s1) 0 0;
+  padding: 0;
+  font-size: var(--text-meta);
+  line-height: var(--leading);
+  color: var(--ink-faint);
+}
+
+/* ---- Claim rows — the page is a verification surface ---- */
+
+.claims {
+  margin-top: var(--s3);
+}
+
+.claimItem {
+  padding: var(--s3) 0;
+  border-top: var(--border);
+}
+
+.claimItem:last-child {
+  padding-bottom: 0;
+}
+
+/* Verdict receipt line — mirrors VerdictControls .micro. */
+.note {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  margin-top: var(--s2);
+  font-size: var(--text-sub);
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.noteMark {
+  flex: none;
+  font-weight: 700;
+}
+
+.ok {
+  color: var(--verified);
+}
+
+.re {
+  color: var(--hazard);
+}
+
+.ch {
+  color: var(--forest);
+}
+
+.foot {
+  margin-top: var(--s3);
+}
+
+/* ---- Last-mile hand-off ---- */
+
+/* s4 − s2 of row padding + the tertiary's own s2 pad = the s4 text edge. */
+.directions {
+  border-top: var(--border);
+  padding: var(--s2) calc(var(--s4) - var(--s2));
+  display: flex;
+}
+
+/* ---- Loading / failure (no spinner-only screens) ---- */
+
+.skeleton {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.bar {
+  height: var(--s4);
+  border-radius: var(--radius-ctl);
+  background: var(--recess);
+}
+
+.barWide {
+  width: 60%;
+}
+
+.barMid {
+  width: 40%;
+}
+
+.barFull {
+  width: 100%;
+}
+
+.notice {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s4);
+}
+
+.noticeLead {
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: 1.4;
+}

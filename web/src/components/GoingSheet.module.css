@@ -1,0 +1,172 @@
+/* The "I'm going" confirmation sheet (design/prompts/05-im-going.txt) — a
+   bottom sheet over the feed. Every value is a token from src/app/tokens.css
+   except the scrim, which tokens don't define: it reuses --shadow-card's ink
+   recipe rgba(28, 43, 37, …) at overlay strength. */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 20; /* above the sticky app header (Header.module.css z-index 10) */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  background: rgba(28, 43, 37, 0.4);
+}
+
+.sheet {
+  width: 100%;
+  max-width: 448px; /* the .shell column (globals.css) */
+  max-height: calc(100vh - var(--s8));
+  max-height: calc(100dvh - var(--s8));
+  overflow-y: auto;
+  background: var(--card);
+  border: var(--border);
+  border-bottom: none;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  box-shadow: var(--shadow-card);
+  padding: var(--s5) var(--s4) calc(var(--s6) + env(safe-area-inset-bottom, 0px));
+  outline: none; /* focus lands on the sheet on open; rings belong to controls */
+}
+
+.title {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+/* Shared group label — FeedFilters .filterLabel idiom. */
+.label {
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+  margin-bottom: var(--s1);
+}
+
+.when {
+  margin-top: var(--s4);
+}
+
+.chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+/* Quiet date chips — FeedFilters .chip verbatim. */
+.chip {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch);
+  padding: 0 var(--s4);
+  border: var(--border);
+  border-radius: var(--radius-chip);
+  background: var(--card);
+  font-family: var(--font-ui);
+  font-size: var(--text-sub);
+  font-weight: 500;
+  color: var(--ink-soft);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.isOn {
+  background: var(--forest-tint);
+  border-color: var(--forest-tint);
+  color: var(--forest);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
+}
+
+/* Revealed only by "another day →" — never a form-first experience. 16px
+   body size also keeps iOS Safari from zooming the control on focus. */
+.dateInput {
+  display: block;
+  margin-top: var(--s2);
+  min-height: var(--touch);
+  padding: 0 var(--s3);
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-ctl);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  color: var(--ink);
+}
+
+.conditions {
+  margin-top: var(--s4);
+}
+
+/* Conditions-at-decision: a compact meta echo of the provenance line —
+   the system's 22px glyph gutter, text stays ink-soft. */
+.reason {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  column-gap: var(--s1);
+  font-size: var(--text-meta);
+  line-height: var(--leading);
+  color: var(--ink-soft);
+}
+
+/* .data is 0.94em; inside a 13px meta line that would dip below the hard
+   floor (--text-meta) — pin it back (ExperienceCard .drive precedent). */
+.reason :global(.data) {
+  font-size: var(--text-meta);
+}
+
+.glyph {
+  line-height: inherit;
+}
+
+.isLive .glyph {
+  color: var(--live);
+}
+
+.isFading .glyph {
+  color: var(--fading);
+}
+
+.nearby {
+  margin-top: var(--s4);
+}
+
+.sunday {
+  margin-top: var(--s4);
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+}
+
+/* Quiet retry (cross-cutting states): amber ink, never hazard rust —
+   --hazard is reserved for hazard-class content framing. */
+.error {
+  margin-top: var(--s3);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  color: var(--fading);
+}
+
+.actions {
+  margin-top: var(--s4);
+}
+
+/* Success replaces the primary in the same slot; min-height 48px holds the
+   layout so the sheet doesn't jump on save. */
+.saved {
+  margin-top: var(--s4);
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+.savedLine {
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--forest);
+}

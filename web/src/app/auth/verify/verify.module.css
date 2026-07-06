@@ -1,0 +1,58 @@
+/* No synced spec card exists for auth (design/prompts/07-auth.txt is the
+   source); card chrome follows the AlertCard idiom. Every value is a token
+   from src/app/tokens.css. */
+
+.checking {
+  padding: var(--s6) 0;
+  font-size: var(--text-sub);
+  color: var(--ink-soft);
+}
+
+.card {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s5) var(--s4);
+}
+
+.headline {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.identity {
+  margin-top: var(--s2);
+  font-size: var(--text-body);
+  color: var(--ink);
+}
+
+.name {
+  font-weight: 600;
+}
+
+.sep {
+  color: var(--ink-faint);
+}
+
+.addr {
+  color: var(--ink-soft);
+}
+
+.session {
+  margin-top: var(--s1);
+  font-size: var(--text-meta);
+  color: var(--ink-faint);
+}
+
+.action {
+  margin-top: var(--s4);
+}
+
+.quietRow {
+  margin-top: var(--s1);
+  display: flex;
+  justify-content: center;
+}

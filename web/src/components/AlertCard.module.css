@@ -1,0 +1,42 @@
+/* Spec: design/surfaces/alert-card.html (.alert / .memory / .actions,
+   message per the push-msg variant). Every value is a token from
+   src/app/tokens.css. */
+
+.alert {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--s4);
+}
+
+/* The push-msg lead at card body size: place + trigger arrive as one
+   server string, so it carries the headline weight the split spec card
+   gives the place name. */
+.message {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+/* the memory line: quiet forest emphasis — you asked for this */
+.memory {
+  display: inline-block;
+  margin-top: var(--s3);
+  font-size: var(--text-sub);
+  font-weight: 600;
+  color: var(--forest);
+  background: var(--forest-tint);
+  padding: var(--s1) var(--s3);
+  border-radius: var(--radius-ctl);
+}
+
+.actions {
+  display: flex;
+  margin-top: var(--s4);
+  /* the tertiary's own 8px pad would push its label off the card's text
+     edge; pull the row back so "see place" aligns with .message */
+  margin-left: calc(-1 * var(--s2));
+}

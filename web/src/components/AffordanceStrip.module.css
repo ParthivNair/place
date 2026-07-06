@@ -1,0 +1,24 @@
+/* Affordance strip (design/components/affordance-strip.html): the verb
+   carries the only 600 weight; every other term stays 15px ink-soft —
+   hierarchy through type, not chrome. */
+
+.strip {
+  font-size: var(--text-sub);
+  line-height: var(--leading);
+  color: var(--ink-soft);
+  overflow-wrap: break-word; /* wraps to two lines gracefully */
+}
+
+.verb {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* "·" glued to the prior term */
+.sep {
+  color: var(--ink-soft);
+}
+
+.flags {
+  margin-top: var(--s1);
+}

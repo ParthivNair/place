@@ -1,0 +1,59 @@
+/* Safety & stewardship line — the foot of every card: permit and Leave No
+   Trace on the card itself, never behind a tap (docs/02 §5.4). Hairline
+   marks its seat above the two actions. */
+.foot {
+  border-top: var(--border);
+  padding-top: var(--s3);
+}
+
+.safety {
+  margin: 0;
+  font-size: var(--text-meta);
+  line-height: var(--leading);
+  color: var(--ink-faint);
+}
+
+/* Permit phrase: quiet emphasis — the legally load-bearing words */
+.permit {
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+/* Assumption-of-risk well (hazard-class cards only). Hazard rust is
+   reserved for this framing; nothing renders louder than the state. */
+.risk {
+  background: var(--hazard-tint);
+  border-radius: var(--radius-ctl);
+  padding: var(--s3);
+  margin-top: var(--s3);
+}
+
+.riskText {
+  margin: 0;
+  font-size: var(--text-sub);
+  line-height: var(--leading);
+  color: var(--hazard);
+}
+
+/* Closure / suppression note — unknown-state colorway, place pages only
+   (docs/02 §5.3). Feeds simply omit the place; no card variant exists. */
+.closure {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  column-gap: var(--s1);
+}
+
+.closureGlyph {
+  color: var(--unknown);
+  font-size: var(--text-sub);
+  line-height: 1.35;
+  padding-top: 1px;
+}
+
+.closureLead {
+  margin: 0;
+  font-size: var(--text-sub);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--unknown);
+}

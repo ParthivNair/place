@@ -1,0 +1,59 @@
+Design the Place page for Place (mobile PWA, 400px) — "a rendering of the
+graph, not a wiki article." Use High Rocks as the canon example. This is also
+a verification surface: every claim row carries one-tap confirm/deny/changed.
+
+Assemble from: place-page-header (exists — design everything BELOW it),
+claim-row (all 4 variants), condition-badge, verdict-controls, nearby-after,
+safety-line (incl. closure variant), provenance-line.
+
+Page order below the header: (1) "What you can do here" — affordance sections,
+each with verb · difficulty · duration · dog/kid flags and its CURRENT window
+state with live sensor value: "wild-swim · currently swimmable · Clackamas @
+Estacada (14210000) at 980 cfs, threshold <1,200 · last verified June 27 at
+1,010 cfs · 3 sources"; (2) claims under each affordance as claim-rows with
+provenance, observed date, decayed confidence, inline verdict controls;
+(3) access & stewardship (permit, parking note, Leave No Trace); (4) "Nearby
+after" module (brewery/diner/soak rows — never standalone destinations);
+(5) source citations that link OUT (Oregon Hikers gets traffic, quotes are
+never republished).
+
+States: (a) all-live High Rocks; (b) hazard affordance suppressed — "Not shown
+— needs a recent verification and a live trigger"; (c) stale reading — "as of
+Tue 4pm" treatment; (d) window unknown (○, basalt); (e) a "more conditions"
+detail: PROPOSAL — an inline-expanding condition sheet per affordance showing
+each window (state, since-when, live ReasonOut provenance popover), not a
+separate route; (f) post-verdict claim row: confidence visually refreshed —
+verifying should feel like refreshing the place for everyone.
+
+HARD CONSTRAINTS (from product canon — not preferences):
+- Use the Place design system. tokens.css is law; colors only from tokens.
+  Direction: "field guide meets instrument panel" — warm paper, fir-green ink,
+  hairline borders as the only chrome, --shadow-card the highest elevation.
+- Mobile-first PWA at 400px viewport, cards 368px. Five type sizes only
+  (20/18/16/15/13); body ≥16px, meta ≥13px hard floor; touch targets ≥44px;
+  4px grid; radii: card 14 / control 10 / chip pill.
+- Every measured number (cfs, inches, °F, minutes, times) uses the .data class:
+  monospace, tabular figures. Claim words ("moderate") stay in the UI font.
+- Glyphs, single source: ⚡ weather-triggered live · ● other live · ○ unknown
+  (hollow) · ✓ verification only · ♡/♥ saves only · → tertiary/link-out.
+- Every card and claim shows its provenance line — live reason + source +
+  freshness where available, claim provenance + last-verified otherwise.
+  NO bare ranks, anywhere, ever.
+- Cards carry exactly two actions: filled-forest 48px primary + borderless
+  quiet tertiary. No outlined secondary exists in this system.
+- No stars, no badges, no points, no streaks, no review composer, no "How was
+  it?". Recognition is named provenance credit only ("verified Sun by @gorge_amy").
+- No hero pins, no map-hero layouts, no spotlight. Every public list is ten
+  ranked options — dispersal is designed in at the rendering layer.
+- Hazard content renders only with assumption-of-risk copy in the hazard-tint
+  well: "Conditions change quickly — a recent verification is not a guarantee.
+  You are responsible for your own judgment."
+- Freshness honesty: readings older than 2× feed cadence render "as of ⟨time⟩";
+  degraded feeds say "live flow unavailable", never "conditions bad"; stale
+  tends toward unknown (○), never toward false.
+- Mock data is canon data, verbatim: Tamanawas Falls (41 min, ⚡ 1.6 in rain in
+  72h, NWS, verified Sun by @gorge_amy) · High Rocks, Clackamas @ Estacada
+  (gauge 14210000) at 980 cfs, threshold <1,200, last verified June 27 at
+  1,010 cfs · 3 sources · Dog Mountain balsamroot · Springville Trailhead
+  (14 min) · Steeplejack Brewing · Northwest Forest Pass · Multnomah Falls
+  timed-use permit.
