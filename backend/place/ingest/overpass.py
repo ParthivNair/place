@@ -23,7 +23,7 @@ from sqlalchemy import Connection
 
 from place.config import get_settings
 from place.ingest import crosswalk
-from place.ingest.geo import PORTLAND_LAT, PORTLAND_LNG, RADIUS_KM, in_polygon
+from place.ingest.geo import PORTLAND_LAT, PORTLAND_LNG, RADIUS_KM, haversine_m, in_polygon
 
 log = logging.getLogger(__name__)
 
@@ -184,8 +184,16 @@ def load(
     limit: int | None = None,
     tags: list[str] | None = None,
     bbox: tuple[float, float, float, float] | None = None,
+    within: tuple[float, float, float] | None = None,
 ) -> dict[str, int]:
-    """Fetch + upsert. Returns counters for the CLI summary line."""
+    """Fetch + upsert. Returns counters for the CLI summary line.
+
+    ``within`` is (lat, lng, radius_km); when given it replaces the launch
+    circle as the precise post-filter (bbox stays the coarse pre-filter —
+    same two-step pattern as geo.py). Region mode needs this: regions like
+    bend sit entirely outside the 130 km launch circle, which would
+    otherwise discard every element the bbox fetched.
+    """
     query = build_query(tags, bbox=bbox)
     payload = fetch(query)
     osm_places = parse_elements(payload)
@@ -199,7 +207,11 @@ def load(
     for i, p in enumerate(osm_places):
         if limit is not None and i >= limit:
             break
-        if not in_polygon(p.lat, p.lng):
+        if within is not None:
+            inside = haversine_m(within[0], within[1], p.lat, p.lng) <= within[2] * 1000.0
+        else:
+            inside = in_polygon(p.lat, p.lng)
+        if not inside:
             skipped += 1
             continue
         _, was_created = crosswalk.resolve_place(

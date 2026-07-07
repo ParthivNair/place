@@ -1,0 +1,107 @@
+# Region priority list for the population program — FOUNDER-OWNED.
+#
+# File order IS priority order: `python -m place.ingest.cli coverage` marks the
+# first region below target as NEXT, and the populate-region skill works that
+# one. Reorder lines to repoint the program; code (place/ingest/regions.py)
+# validates this file but never rewrites it.
+#
+# Coordinates are zip-area centroids, not survey points — they only anchor a
+# radius_mi circle for Overpass scoping and coverage counts. Targets follow
+# docs/03 §6 step 8 (150 dense, condition-wired places beat 400 shallow ones);
+# override per region by adding target_places / target_affordances to its entry.
+# target_affordances counts ANY status — review-queue depth is progress here,
+# publication is gated elsewhere (docs/00-THESIS.md §7 "Claim").
+
+defaults:
+  radius_mi: 20
+  target_places: 150
+  target_affordances: 30
+
+regions:
+  - slug: pdx-west
+    name: Portland West
+    anchor_zip: "97229"
+    lat: 45.559
+    lng: -122.827
+    radius_mi: 20
+    notes: Forest Park, Sauvie Island, Tualatin River paddle put-ins — the founder's home turf.
+
+  - slug: corvallis
+    name: Corvallis
+    anchor_zip: "97330"
+    lat: 44.634
+    lng: -123.275
+    radius_mi: 20
+    notes: Marys Peak, McDonald-Dunn Research Forest, Willamette paddling.
+
+  - slug: gorge-west
+    name: Columbia Gorge West
+    anchor_zip: "97014"
+    lat: 45.663
+    lng: -121.890
+    radius_mi: 20
+    notes: Cascade Locks anchor — the waterfall corridor; aligns with the October seasonal tool.
+
+  - slug: hood-river
+    name: Hood River
+    anchor_zip: "97031"
+    lat: 45.60
+    lng: -121.55
+    radius_mi: 20
+    notes: East Gorge — windsurfing, orchards, dry-side wildflower slopes.
+
+  - slug: mt-hood
+    name: Mt. Hood
+    anchor_zip: "97028"
+    lat: 45.30
+    lng: -121.75
+    radius_mi: 20
+    notes: Government Camp anchor — snow travel, alpine lakes, Tamanawas/Ramona.
+
+  - slug: clackamas
+    name: Clackamas River Corridor
+    anchor_zip: "97023"
+    lat: 45.24
+    lng: -122.29
+    radius_mi: 20
+    notes: Estacada anchor — the swim-hole bindings (High Rocks, Three Lynx reach).
+
+  - slug: coast-north
+    name: North Coast
+    anchor_zip: "97110"
+    lat: 45.878
+    lng: -123.955
+    radius_mi: 20
+    notes: Cannon Beach anchor — Haystack Rock tidepooling, Ecola, Oswald West.
+
+  - slug: coast-central
+    name: Central Coast
+    anchor_zip: "97365"
+    lat: 44.65
+    lng: -124.05
+    radius_mi: 20
+    notes: Newport anchor — Yaquina Head tidepools, Otter Rock, estuary paddling.
+
+  - slug: salem-silverfalls
+    name: Salem & Silver Falls
+    anchor_zip: "97301"
+    lat: 44.95
+    lng: -123.00
+    radius_mi: 20
+    notes: Silver Falls trail of ten falls, Ankeny wildlife refuge, Santiam access.
+
+  - slug: bend
+    name: Bend
+    anchor_zip: "97701"
+    lat: 44.09
+    lng: -121.28
+    radius_mi: 20
+    notes: Deschutes paddling, Tumalo Falls, high-desert stargazing and larch-free but lava-rich.
+
+  - slug: eugene
+    name: Eugene
+    anchor_zip: "97401"
+    lat: 44.07
+    lng: -123.11
+    radius_mi: 20
+    notes: Spencer Butte, Fern Ridge birding, McKenzie corridor approaches.
