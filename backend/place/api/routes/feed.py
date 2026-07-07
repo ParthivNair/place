@@ -2,9 +2,11 @@
 
 One indexed read: good_now join places with ST_DWithin, ordered by
 now_score (docs/01 section 7 Q2). Conditions are NEVER computed here; the
-route only renders what the evaluator materialized. Every returned card
-logs a feed_events 'impression' with its conditions snapshot
-(docs/02 section 5 requirement 2).
+route only renders what the evaluator materialized. The route is a PURE
+read — no writes — so the same response can later be served from a static
+pack. The impression + conditions-snapshot log (docs/02 section 5
+requirement 2) moved to the POST /events/impressions client beacon, where
+the server still attests the snapshot itself.
 """
 
 from __future__ import annotations
@@ -13,11 +15,11 @@ import datetime as dt
 from typing import Annotated
 
 from fastapi import APIRouter, Query
-from sqlalchemy import insert, text
+from sqlalchemy import text
 
 from place.api import cards as cards_mod
 from place.api import snapshots
-from place.api.deps import Db, MaybeUser
+from place.api.deps import Db
 from place.api.reasons import iter_leaves, render_reason
 from place.api.schemas import (
     ASSUMPTION_OF_RISK,
@@ -25,7 +27,6 @@ from place.api.schemas import (
     FeedResponse,
     VerdictControl,
 )
-from place.models import feed_events
 
 router = APIRouter(tags=["feed"])
 
@@ -89,7 +90,6 @@ LIMIT :limit
 @router.get("/feed", response_model=FeedResponse)
 async def get_feed(
     db: Db,
-    user: MaybeUser,
     lat: Annotated[float, Query(ge=-90, le=90)],
     lng: Annotated[float, Query(ge=-180, le=180)],
     radius_km: Annotated[float, Query(gt=0, le=300)] = 130,  # ~90-min polygon at MVP
@@ -133,7 +133,6 @@ async def get_feed(
     confirms = await cards_mod.load_last_confirm(db, aff_ids)
 
     out_cards: list[FeedCard] = []
-    impressions: list[dict[str, object]] = []
     for row in rows:
         aff_id = row["affordance_id"]
         window_rows = states.get(aff_id, [])
@@ -196,17 +195,5 @@ async def get_feed(
             verdict_controls=[VerdictControl(claim_id=c["id"]) for c in claims],
         )
         out_cards.append(card)
-        impressions.append(
-            {
-                "user_id": user["id"] if user else None,
-                "affordance_id": aff_id,
-                "etype": "impression",
-                "now_score": float(row["now_score"]),
-                "conditions_snapshot": conditions,
-            }
-        )
-
-    if impressions:
-        await db.execute(insert(feed_events), impressions)
 
     return FeedResponse(generated_at=now, count=len(out_cards), cards=out_cards)

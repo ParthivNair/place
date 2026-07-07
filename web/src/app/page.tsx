@@ -8,7 +8,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { FeedCard, FeedResponse } from "@/lib/types";
-import { ApiError, addSave, getFeed, postEvent, removeSave } from "@/lib/api";
+import {
+  ApiError,
+  addSave,
+  getFeed,
+  postEvent,
+  postImpressions,
+  removeSave,
+} from "@/lib/api";
 import { verbNeedle } from "@/lib/format";
 import {
   NEIGHBORHOOD_KEY,
@@ -131,6 +138,25 @@ export default function Home() {
     debouncedVerb,
     retryToken,
   ]);
+
+  /* GET /feed is a pure read (static-pack read path); the impression +
+     conditions-snapshot log (docs/02 §5 requirement 2) now leaves via this
+     beacon. Keyed on the response object: re-renders and filter flips that
+     reuse the same response never double-log, while every NEW fetch logs
+     its whole card set once — the old every-GET-logs semantics. Fire and
+     forget: an offline cached replay simply doesn't log, same as before.
+     Called in MOCK mode too, so the path stays exercised (the mock branch
+     no-ops server-side anyway). */
+  useEffect(() => {
+    if (!feed || feed.cards.length === 0) return;
+    postImpressions(
+      feed.cards.map((c) => ({
+        affordance_id: c.affordance_id,
+        now_score: c.now_score,
+        computed_at: c.computed_at,
+      })),
+    ).catch(() => {});
+  }, [feed]);
 
   const requestLocation = () => {
     // The permission ask happens here, on tap — never on load.

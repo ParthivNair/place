@@ -24,6 +24,7 @@ from place.models import (
     claims,
     condition_states,
     condition_windows,
+    feed_events,
     feeds,
     good_now,
     places,
@@ -161,7 +162,7 @@ def seed_graph(engine: Engine) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def test_feed_happy_path_renders_live_reason_and_logs_impression(client, db) -> None:
+def test_feed_happy_path_renders_live_reason_and_writes_nothing(client, db) -> None:
     ids = seed_graph(db)
     resp = client.get("/feed", params={"lat": LAT, "lng": LNG})
     assert resp.status_code == 200, resp.text
@@ -186,16 +187,11 @@ def test_feed_happy_path_renders_live_reason_and_logs_impression(client, db) -> 
         "changed",
     }
 
+    # The point of the pure-read feed (static-pack read path): GET /feed
+    # writes ZERO feed_events rows — impressions arrive via the beacon.
     with db.connect() as conn:
-        row = conn.execute(
-            text(
-                "SELECT etype::text AS etype, conditions_snapshot FROM feed_events"
-                " WHERE affordance_id = :aid"
-            ),
-            {"aid": ids["affordance_id"]},
-        ).mappings().one()
-    assert row["etype"] == "impression"
-    assert row["conditions_snapshot"][PRECIP_FEED] == 1.6
+        n = conn.execute(select(text("count(*)")).select_from(feed_events)).scalar()
+    assert n == 0
 
 
 def test_feed_marks_unknown_live_window_as_unavailable(client, db) -> None:
@@ -217,6 +213,114 @@ def test_feed_respects_radius(client, db) -> None:
     seed_graph(db)
     resp = client.get("/feed", params={"lat": 37.77, "lng": -122.42})  # SF: far away
     assert resp.json()["count"] == 0
+
+
+# ---------------------------------------------------------------------------
+# impression beacon (POST /events/impressions)
+# ---------------------------------------------------------------------------
+
+
+def test_impressions_beacon_reconstructs_snapshot_as_of_computed_at(client, db) -> None:
+    # The beacon flow end to end: read the feed, replay what the card said,
+    # and assert the server re-attached the snapshot AS OF the card's
+    # computed_at — a newer condition_states generation landing between
+    # render and beacon must not leak into the logged vector.
+    ids = seed_graph(db)
+    resp = client.get("/feed", params={"lat": LAT, "lng": LNG})
+    card = next(c for c in resp.json()["cards"] if c["place_name"] == "Tamanawas Falls")
+
+    with db.begin() as conn:
+        conn.execute(
+            insert(condition_states).values(
+                window_id=ids["window_id"],
+                satisfied=True,
+                evaluated_at=dt.datetime.now(dt.UTC) + dt.timedelta(hours=1),
+                inputs={PRECIP_FEED: 2.4},  # newer generation, after the sweep
+            )
+        )
+
+    me = login(client, "hiker@place.test")
+    beacon = client.post(
+        "/events/impressions",
+        json={
+            "items": [
+                {
+                    "affordance_id": card["affordance_id"],
+                    "now_score": card["now_score"],
+                    "computed_at": card["computed_at"],
+                }
+            ]
+        },
+    )
+    assert beacon.status_code == 201, beacon.text
+    assert beacon.json() == {"stored": 1}
+
+    with db.connect() as conn:
+        row = conn.execute(
+            text(
+                "SELECT user_id, etype::text AS etype, now_score, conditions_snapshot"
+                " FROM feed_events WHERE affordance_id = :aid"
+            ),
+            {"aid": ids["affordance_id"]},
+        ).mappings().one()
+    assert row["etype"] == "impression"
+    assert row["user_id"] == uuid.UUID(me["id"])
+    assert float(row["now_score"]) == pytest.approx(card["now_score"])
+    # the OLDER generation: computed_at predates the 2.4 reading (as-of contract)
+    assert row["conditions_snapshot"][PRECIP_FEED] == 1.6
+    assert "date" in row["conditions_snapshot"]
+
+
+def test_impressions_anonymous_batch_stores_null_user(client, db) -> None:
+    # Anonymous impressions were legal when GET /feed logged them
+    # (user_id=None); the beacon keeps them legal.
+    ids = seed_graph(db)
+    at = dt.datetime.now(dt.UTC).isoformat()
+    item = {"affordance_id": str(ids["affordance_id"]), "now_score": 1.9, "computed_at": at}
+    resp = client.post("/events/impressions", json={"items": [item, item]})
+    assert resp.status_code == 201, resp.text
+    assert resp.json() == {"stored": 2}
+    with db.connect() as conn:
+        rows = conn.execute(
+            select(feed_events.c.user_id, feed_events.c.etype)
+        ).mappings().all()
+    assert len(rows) == 2
+    assert all(r["user_id"] is None for r in rows)
+    assert all(str(r["etype"]) == "impression" for r in rows)
+
+
+def test_impressions_unknown_affordance_rejects_whole_batch(client, db) -> None:
+    ids = seed_graph(db)
+    at = dt.datetime.now(dt.UTC).isoformat()
+    ghost = str(uuid.uuid4())
+    resp = client.post(
+        "/events/impressions",
+        json={
+            "items": [
+                {"affordance_id": str(ids["affordance_id"]), "now_score": 1.9, "computed_at": at},
+                {"affordance_id": ghost, "now_score": 1.0, "computed_at": at},
+            ]
+        },
+    )
+    assert resp.status_code == 404
+    assert ghost in resp.json()["detail"]
+    with db.connect() as conn:
+        n = conn.execute(select(text("count(*)")).select_from(feed_events)).scalar()
+    assert n == 0  # all-or-nothing, mirroring the single-event 404
+
+
+def test_impressions_oversize_batch_422(client, db) -> None:
+    ids = seed_graph(db)
+    item = {
+        "affordance_id": str(ids["affordance_id"]),
+        "now_score": 1.9,
+        "computed_at": dt.datetime.now(dt.UTC).isoformat(),
+    }
+    resp = client.post("/events/impressions", json={"items": [item] * 51})
+    assert resp.status_code == 422  # cap = the feed's max page size (50)
+    with db.connect() as conn:
+        n = conn.execute(select(text("count(*)")).select_from(feed_events)).scalar()
+    assert n == 0
 
 
 def test_place_page_and_search(client, db) -> None:
