@@ -113,22 +113,26 @@ def parse_regions(doc: object) -> list[Region]:
                 f"{ctx}: centroid ({lat}, {lng}) outside the Oregon sanity window "
                 f"lat {LAT_RANGE} lng {LNG_RANGE}"
             )
-        radius_mi = float(
-            entry["radius_mi"] if "radius_mi" in entry
-            else defaults.get("radius_mi", DEFAULT_RADIUS_MI)
-        )
+        # per-region override > defaults block > code default; a non-numeric
+        # value in either place is a validation failure, not a traceback.
+        try:
+            radius_mi = float(
+                entry["radius_mi"] if "radius_mi" in entry
+                else defaults.get("radius_mi", DEFAULT_RADIUS_MI)
+            )
+            target_places = int(
+                entry.get("target_places", defaults.get("target_places", DEFAULT_TARGET_PLACES))
+            )
+            target_affordances = int(
+                entry.get(
+                    "target_affordances",
+                    defaults.get("target_affordances", DEFAULT_TARGET_AFFORDANCES),
+                )
+            )
+        except (TypeError, ValueError) as exc:
+            raise RegionError(f"{ctx}: radius_mi and targets must be numbers ({exc})") from exc
         if radius_mi <= 0:
             raise RegionError(f"{ctx}: radius_mi must be positive")
-        # per-region override > defaults block > code default
-        target_places = int(
-            entry.get("target_places", defaults.get("target_places", DEFAULT_TARGET_PLACES))
-        )
-        target_affordances = int(
-            entry.get(
-                "target_affordances",
-                defaults.get("target_affordances", DEFAULT_TARGET_AFFORDANCES),
-            )
-        )
         if target_places <= 0 or target_affordances <= 0:
             raise RegionError(f"{ctx}: targets must be positive")
         out.append(

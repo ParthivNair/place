@@ -83,6 +83,9 @@ def _run_region(args: argparse.Namespace) -> int:
         region.slug, region.name, region.radius_mi, region.lat, region.lng, region.notes,
     )
 
+    if args.bbox:
+        log.warning("region mode ignores --bbox: the region's own circle scopes overpass")
+
     exit_code = 0
     with engine.begin() as conn:
         stats = overpass.load(

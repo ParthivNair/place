@@ -131,6 +131,16 @@ class TestParseRegions:
         with pytest.raises(RegionError, match="radius_mi"):
             parse_regions({"regions": [_entry(radius_mi=0)]})
 
+    def test_non_numeric_radius_rejected(self):
+        """'twenty' in the founder-owned YAML is a validation failure with the
+        offending region named, not a bare ValueError traceback."""
+        with pytest.raises(RegionError, match=r"regions\[pdx-west\]"):
+            parse_regions({"regions": [_entry(radius_mi="twenty")]})
+
+    def test_non_numeric_default_target_rejected(self):
+        with pytest.raises(RegionError, match="must be numbers"):
+            parse_regions({"defaults": {"target_places": "lots"}, "regions": [_entry()]})
+
     def test_empty_regions_rejected(self):
         with pytest.raises(RegionError, match="non-empty"):
             parse_regions({"regions": []})

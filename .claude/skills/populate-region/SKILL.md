@@ -89,7 +89,7 @@ proposals:
     claim:
       text: "Deep pool below the falls; locals swim it July-September."
       source_url: "https://www.oregonhikers.org/field_guide/Punch_Bowl_Falls"
-      source_type: llm_extracted    # or user_reported; nothing else is accepted
+      source_type: llm_extracted    # web research is ALWAYS llm_extracted — see below
       observed_date: 2025-08-10     # when it HAPPENED; null if undatable
       class: geomorphic             # optional: geomorphic | seasonal_bio | access | hazard_calibration
     dog_ok: true                    # optional
@@ -99,6 +99,16 @@ proposals:
 Unknown `activity_id`s are rejected (closed vocabulary); `founder_verified`
 and `sensor_derived` source types are rejected (earned, never proposed).
 
+**`source_type` is `llm_extracted` for everything you find on the web** —
+field guides, Reddit trip reports, forum posts, all of it. `user_reported`
+is reserved for first-party reports someone relayed directly to the founder
+(the verdict path's origin, docs/01 §5): it carries a higher prior AND one
+published `user_reported` claim alone satisfies the publication gate's
+support prong, so mislabeling a scraped post as `user_reported` launders a
+single web source into publication support — exactly what docs/00 §7's
+"nothing auto-publishes from a single LLM extraction" structures against.
+When in doubt: `llm_extracted`.
+
 ### e. Load, verify, report
 
 ```bash
@@ -106,9 +116,11 @@ and `sensor_derived` source types are rejected (earned, never proposed).
 .venv/bin/python -m place.ingest.cli coverage
 ```
 
-The loader is idempotent (same affordance + source_url = skipped), matches
-places within 500 m by name similarity, and writes everything at
-`status='review'`.
+The loader is idempotent (same affordance + claim class + source_url =
+skipped, so one page CAN carry e.g. a geomorphic and an access claim),
+matches places within 500 m by name similarity, and writes everything at
+`status='review'` — it never sets dog_ok/kid_ok on an already-published
+affordance.
 
 Report back:
 1. What was added (the proposals summary line: created/matched/skipped).

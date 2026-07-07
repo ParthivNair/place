@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import datetime as dt
+from pathlib import Path
 
 import pytest
 import yaml
 
+from place.extract.schema import MAX_QUOTE_CHARS
 from place.ingest.proposals import (
     LOG_ODDS,
     ProposalError,
     dedup,
+    load,
     parse_proposals,
 )
 
@@ -87,6 +90,19 @@ class TestParseProposals:
         with pytest.raises(ProposalError, match="claim.text"):
             parse_proposals([e], KNOWN)
 
+    def test_overlong_claim_text_rejected(self):
+        """quote_internal carries minimal evidence, capped like the frozen
+        extraction schema's verbatim_quote — not whole scraped articles."""
+        e = _entry()
+        e["claim"]["text"] = "x" * (MAX_QUOTE_CHARS + 1)
+        with pytest.raises(ProposalError, match=str(MAX_QUOTE_CHARS)):
+            parse_proposals([e], KNOWN)
+
+    def test_claim_text_at_cap_allowed(self):
+        e = _entry()
+        e["claim"]["text"] = "x" * MAX_QUOTE_CHARS
+        assert len(parse_proposals([e], KNOWN)) == 1
+
     def test_future_observed_date_rejected(self):
         e = _entry()
         e["claim"]["observed_date"] = (dt.date.today() + dt.timedelta(days=2)).isoformat()
@@ -159,3 +175,38 @@ class TestDedup:
         e2 = _entry(activity_id="hike")
         unique, _ = dedup(parse_proposals([_entry(), e2], KNOWN))
         assert len(unique) == 2
+
+    def test_distinct_claim_classes_survive(self):
+        """One field-guide page routinely supports several distinct claims —
+        a geomorphic 'deep pool' plus an access 'gate closed' from the same
+        URL are corroborating different facts, not duplicating one."""
+        e2 = _entry()
+        e2["claim"]["text"] = "Trail gate closed until June; bridge out."
+        e2["claim"]["class"] = "access"
+        unique, dupes = dedup(parse_proposals([_entry(), e2], KNOWN))
+        assert len(unique) == 2 and dupes == 0
+
+    def test_same_named_places_far_apart_survive(self):
+        """Oregon has two Punch Bowl Falls ~20 km apart; a roundup page citing
+        both must not collapse them — coordinates are part of the key."""
+        e1, e2 = _entry(), _entry()
+        e1["place"]["name"] = e2["place"]["name"] = "Punch Bowl Falls"
+        e2["place"]["lat"] = e1["place"]["lat"] + 0.18  # ~20 km north
+        unique, dupes = dedup(parse_proposals([e1, e2], KNOWN))
+        assert len(unique) == 2 and dupes == 0
+
+
+class TestLoadFileErrors:
+    """A bad path or broken YAML must surface as ProposalError (the CLI's
+    rejected-file exit path), not a raw traceback. Neither case reaches the
+    database, so conn=None proves the failure happens before any DB work."""
+
+    def test_missing_file_is_a_proposal_error(self, tmp_path: Path):
+        with pytest.raises(ProposalError, match="not found"):
+            load(None, tmp_path / "nope.yaml")
+
+    def test_invalid_yaml_is_a_proposal_error(self, tmp_path: Path):
+        path = tmp_path / "broken.yaml"
+        path.write_text("proposals: [unclosed\n  - place: {")
+        with pytest.raises(ProposalError, match="not valid YAML"):
+            load(None, path)

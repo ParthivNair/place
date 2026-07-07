@@ -16,8 +16,11 @@ user_reported — founder_verified and sensor_derived are *earned* through
 the verdict and evaluator paths and can never arrive as a proposal.
 
 Idempotent two ways: duplicates within one file collapse before loading, and
-a claim whose (affordance, source_url) already exists in the DB is skipped —
-re-running a file converges instead of duplicating. Place resolution reuses
+a claim whose (affordance, cclass, source_url) already exists in the DB is
+skipped — re-running a file converges instead of duplicating. cclass is part
+of claim identity: one field-guide page routinely supports both a geomorphic
+and an access claim, and keying on URL alone would silently drop the second
+(and keep dropping it on every re-run). Place resolution reuses
 the ingest crosswalk (trigram name + distance) with a tighter 500 m radius
 than cross-source skeleton merges: proposals carry researched coordinates,
 so a farther same-name row is more likely a neighboring feature than drift.
@@ -35,7 +38,7 @@ from urllib.parse import urlparse
 import yaml
 from sqlalchemy import Connection, text
 
-from place.extract.schema import MIN_OBSERVED_YEAR, source_domain_from_url
+from place.extract.schema import MAX_QUOTE_CHARS, MIN_OBSERVED_YEAR, source_domain_from_url
 from place.ingest import crosswalk
 from place.ingest.regions import LAT_RANGE, LNG_RANGE
 
@@ -147,6 +150,13 @@ def _parse_one(entry: object, known_activities: set[str], ctx: str) -> Proposal:
     claim_text = claim.get("text")
     if not isinstance(claim_text, str) or not claim_text.strip():
         raise ProposalError(f"{ctx}: claim.text must be a non-empty string")
+    if len(claim_text.strip()) > MAX_QUOTE_CHARS:
+        # Same cap as the frozen extraction schema's verbatim_quote: the text
+        # lands in claims.quote_internal, which carries minimal evidence for
+        # founder review, not article dumps.
+        raise ProposalError(
+            f"{ctx}: claim.text exceeds {MAX_QUOTE_CHARS} chars — quote the minimal evidence"
+        )
     source_type = claim.get("source_type")
     if source_type not in SOURCE_TYPES:
         raise ProposalError(
@@ -196,12 +206,28 @@ def parse_proposals(doc: object, known_activities: set[str]) -> list[Proposal]:
 
 
 def dedup(proposals: list[Proposal]) -> tuple[list[Proposal], int]:
-    """Collapse in-file duplicates on the same natural key the DB skip uses:
-    (normalized place name, activity, source_url). First occurrence wins."""
-    seen: set[tuple[str, str, str]] = set()
+    """Collapse in-file duplicates; first occurrence wins.
+
+    The key is (normalized place name, coordinates, activity, claim class,
+    source_url) — deliberately FINER than the DB skip's (affordance, cclass,
+    source_url), because one source page routinely carries several distinct
+    claims: a field-guide page pairing a geomorphic claim with an access
+    claim, or two same-named places cited by one roundup (Oregon has two
+    Punch Bowl Falls ~20 km apart). Only literal repeats collapse here;
+    near-duplicates that survive resolve to the same affordance and are
+    skipped by _claim_exists instead.
+    """
+    seen: set[tuple[str, float, float, str, str, str]] = set()
     unique: list[Proposal] = []
     for p in proposals:
-        key = (crosswalk.normalize_name(p.place_name), p.activity_id, p.source_url)
+        key = (
+            crosswalk.normalize_name(p.place_name),
+            p.lat,
+            p.lng,
+            p.activity_id,
+            p.cclass,
+            p.source_url,
+        )
         if key in seen:
             continue
         seen.add(key)
@@ -221,20 +247,31 @@ def _known_activities(conn: Connection) -> set[str]:
 def _get_or_create_affordance(
     conn: Connection, place_id: object, p: Proposal
 ) -> tuple[object, bool]:
-    existing = conn.execute(
-        text("SELECT id FROM affordances WHERE place_id = :p AND activity_id = :a"),
+    row = conn.execute(
+        text(
+            "SELECT id, status::text FROM affordances "
+            "WHERE place_id = :p AND activity_id = :a"
+        ),
         {"p": place_id, "a": p.activity_id},
-    ).scalar()
-    if existing is not None:
+    ).first()
+    if row is not None:
+        existing, status = row
         # Fill dog_ok/kid_ok only where NULL — never clobber values the
-        # founder (or a binding) already set. Same pattern as the crosswalk's
-        # elev_m backfill.
-        for col, val in (("dog_ok", p.dog_ok), ("kid_ok", p.kid_ok)):
-            if val is not None:
-                conn.execute(
-                    text(f"UPDATE affordances SET {col} = :v WHERE id = :i AND {col} IS NULL"),  # noqa: S608
-                    {"v": val, "i": existing},
-                )
+        # founder (or a binding) already set — and only on rows still ahead
+        # of founder triage. A published affordance is live-served (/feed
+        # filters on these columns directly), so an agent-researched flag
+        # must not reach it without review — this loader's whole contract is
+        # that nothing it writes skips the review queue. Suppressed rows are
+        # a founder decision this loader must not touch either. The claim
+        # itself still lands (at status='review') for any status: new
+        # evidence for a published affordance is exactly what triage is for.
+        if status in ("draft", "review"):
+            for col, val in (("dog_ok", p.dog_ok), ("kid_ok", p.kid_ok)):
+                if val is not None:
+                    conn.execute(
+                        text(f"UPDATE affordances SET {col} = :v WHERE id = :i AND {col} IS NULL"),  # noqa: S608
+                        {"v": val, "i": existing},
+                    )
         return existing, False
     # Born straight into the review queue — unlike extraction's 'draft'
     # (resolve.py), a proposal is a deliberate candidate for founder review.
@@ -248,13 +285,18 @@ def _get_or_create_affordance(
     return created, True
 
 
-def _claim_exists(conn: Connection, affordance_id: object, source_url: str) -> bool:
+def _claim_exists(conn: Connection, affordance_id: object, p: Proposal) -> bool:
+    # cclass is part of claim identity: skipping on (affordance, source_url)
+    # alone would permanently drop the second of two distinct claims one page
+    # supports (e.g. geomorphic 'deep pool' + access 'gate closed') — every
+    # re-run citing the URL would keep counting it as already present.
     return bool(
         conn.execute(
             text(
-                "SELECT 1 FROM claims WHERE affordance_id = :a AND source_url = :u LIMIT 1"
+                "SELECT 1 FROM claims WHERE affordance_id = :a "
+                "AND cclass = CAST(:c AS claim_class) AND source_url = :u LIMIT 1"
             ),
-            {"a": affordance_id, "u": source_url},
+            {"a": affordance_id, "c": p.cclass, "u": p.source_url},
         ).scalar()
     )
 
@@ -283,7 +325,16 @@ def _insert_claim(conn: Connection, affordance_id: object, p: Proposal) -> None:
 
 def load(conn: Connection, path: Path) -> dict[str, int]:
     """Validate then load one proposals file. Returns counters for the CLI."""
-    doc = yaml.safe_load(path.read_text())
+    # A bad path or broken YAML is a rejected file, not a traceback — same
+    # exit path as any other validation failure (nothing written).
+    try:
+        raw = path.read_text()
+    except FileNotFoundError as exc:
+        raise ProposalError(f"proposals file not found: {path}") from exc
+    try:
+        doc = yaml.safe_load(raw)
+    except yaml.YAMLError as exc:
+        raise ProposalError(f"proposals file is not valid YAML: {exc}") from exc
     proposals = parse_proposals(doc, _known_activities(conn))
     unique, in_file_dupes = dedup(proposals)
 
@@ -297,6 +348,7 @@ def load(conn: Connection, path: Path) -> dict[str, int]:
         "claims_created": 0,
         "claims_skipped": 0,
     }
+    seen_places: set[object] = set()
     for p in unique:
         place_id, place_created = crosswalk.resolve_place(
             conn,
@@ -306,10 +358,13 @@ def load(conn: Connection, path: Path) -> dict[str, int]:
             lng=p.lng,
             max_distance_m=MAX_MATCH_DISTANCE_M,
         )
-        stats["places_created" if place_created else "places_matched"] += 1
+        # several proposals per place is the norm; count each place once
+        if place_id not in seen_places:
+            seen_places.add(place_id)
+            stats["places_created" if place_created else "places_matched"] += 1
         affordance_id, aff_created = _get_or_create_affordance(conn, place_id, p)
         stats["affordances_created" if aff_created else "affordances_existing"] += 1
-        if _claim_exists(conn, affordance_id, p.source_url):
+        if _claim_exists(conn, affordance_id, p):
             stats["claims_skipped"] += 1
             continue
         _insert_claim(conn, affordance_id, p)

@@ -139,6 +139,179 @@ def test_invalid_file_writes_nothing(db: Engine, tmp_path: Path) -> None:
         assert conn.execute(text("SELECT count(*) FROM places")).scalar_one() == 1
 
 
+# One field-guide page supporting two DISTINCT claims for the same affordance:
+# claim identity includes cclass, so the access claim (the perishable,
+# safety-adjacent one) must not collapse into the geomorphic claim's URL.
+PAIRED_CLASSES_YAML = """\
+proposals:
+  - place:
+      name: Punch Bowl Falls
+      lat: 45.5928
+      lng: -121.9350
+      kind: waterfall
+    activity_id: wild_swim
+    claim:
+      text: "Deep pool below the falls; swimmable late summer."
+      source_url: "https://www.oregonhikers.org/field_guide/Punch_Bowl_Falls"
+      source_type: llm_extracted
+      class: geomorphic
+  - place:
+      name: Punch Bowl Falls
+      lat: 45.5928
+      lng: -121.9350
+      kind: waterfall
+    activity_id: wild_swim
+    claim:
+      text: "Bridge out; trail gated until June."
+      source_url: "https://www.oregonhikers.org/field_guide/Punch_Bowl_Falls"
+      source_type: llm_extracted
+      class: access
+"""
+
+
+def test_one_source_page_carries_distinct_claim_classes(db: Engine, tmp_path: Path) -> None:
+    """Neither the in-file dedup nor the DB skip may key on source_url alone:
+    both claims above must land, re-runs must converge, and a LATER file
+    adding a third class from the same URL must still land (URL-only keying
+    made that loss permanent across runs)."""
+    path = _write(tmp_path, PAIRED_CLASSES_YAML)
+    with db.begin() as conn:
+        bindings.load_activities(conn)
+        stats = proposals.load(conn, path)
+    assert stats["in_file_dupes"] == 0
+    assert stats["claims_created"] == 2
+    assert stats["places_created"] == 1  # one place, counted once
+    assert stats["places_matched"] == 0
+    with db.connect() as conn:
+        classes = conn.execute(
+            text("SELECT cclass::text FROM claims ORDER BY cclass::text")
+        ).scalars().all()
+        assert classes == ["access", "geomorphic"]
+
+    with db.begin() as conn:  # re-run converges: both already present
+        rerun = proposals.load(conn, path)
+    assert rerun["claims_created"] == 0 and rerun["claims_skipped"] == 2
+
+    followup = tmp_path / "followup.yaml"
+    followup.write_text(
+        PAIRED_CLASSES_YAML.replace("class: access", "class: hazard_calibration")
+    )
+    with db.begin() as conn:
+        later = proposals.load(conn, followup)
+    assert later["claims_created"] == 1  # the new class from the same URL
+    assert later["claims_skipped"] == 1  # geomorphic already present
+
+
+# Same places/activities as the seeded affordances below; agent-researched
+# flags on both. Only the not-yet-published row may accept the backfill.
+FLAGS_YAML = """\
+proposals:
+  - place:
+      name: High Rocks
+      lat: 45.4415
+      lng: -122.6205
+      kind: swim_hole
+    activity_id: wild_swim
+    claim:
+      text: "Dogs off-leash all over the ledges in July."
+      source_url: "https://www.oregonhikers.org/field_guide/High_Rocks"
+      source_type: llm_extracted
+    dog_ok: true
+    kid_ok: true
+  - place:
+      name: Wahclella Falls Pool
+      lat: 45.6170
+      lng: -121.9540
+      kind: waterfall
+    activity_id: waterfall_view
+    claim:
+      text: "Easy grade; kids fine to the bridge."
+      source_url: "https://www.oregonhikers.org/field_guide/Wahclella_Falls"
+      source_type: llm_extracted
+    dog_ok: true
+    kid_ok: true
+"""
+
+
+def test_flag_backfill_never_touches_published_affordances(db: Engine, tmp_path: Path) -> None:
+    """dog_ok/kid_ok are live-served (/feed filters on them directly), so an
+    agent-researched flag may fill NULLs only on rows still ahead of founder
+    triage — a published affordance stays exactly as the founder reviewed it,
+    while the claim itself still lands at status='review'."""
+    path = _write(tmp_path, FLAGS_YAML)
+    with db.begin() as conn:
+        bindings.load_activities(conn)
+        pub_place, rev_place = (
+            conn.execute(
+                text(
+                    "INSERT INTO places (name, kind, geom) VALUES "
+                    "(:n, :k, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)) RETURNING id"
+                ),
+                {"n": n, "k": k, "lat": lat, "lng": lng},
+            ).scalar_one()
+            for n, k, lat, lng in (
+                ("High Rocks", "swim_hole", 45.4415, -122.6205),
+                ("Wahclella Falls Pool", "waterfall", 45.6170, -121.9540),
+            )
+        )
+        pub_aff = conn.execute(
+            text(
+                "INSERT INTO affordances (place_id, activity_id, status) "
+                "VALUES (:p, 'wild_swim', 'review') RETURNING id"
+            ),
+            {"p": pub_place},
+        ).scalar_one()
+        # one published user_reported claim satisfies the gate's support
+        # prong (trigger in alembic 0001), so this publish is legitimate —
+        # and leaves dog_ok/kid_ok NULL, as every affordance published out
+        # of the extraction review path is.
+        conn.execute(
+            text(
+                "INSERT INTO claims (affordance_id, cclass, stype, source_url, "
+                "source_domain, status, log_odds) VALUES (:a, 'geomorphic', "
+                "'user_reported', 'https://example.org/report', 'example.org', "
+                "'published', 0.2007)"
+            ),
+            {"a": pub_aff},
+        )
+        conn.execute(
+            text("UPDATE affordances SET status = 'published' WHERE id = :i"), {"i": pub_aff}
+        )
+        rev_aff = conn.execute(
+            text(
+                "INSERT INTO affordances (place_id, activity_id, status) "
+                "VALUES (:p, 'waterfall_view', 'review') RETURNING id"
+            ),
+            {"p": rev_place},
+        ).scalar_one()
+
+    with db.begin() as conn:
+        stats = proposals.load(conn, path)
+    assert stats["affordances_created"] == 0 and stats["affordances_existing"] == 2
+    assert stats["claims_created"] == 2
+
+    with db.connect() as conn:
+        status, dog, kid = conn.execute(
+            text("SELECT status::text, dog_ok, kid_ok FROM affordances WHERE id = :i"),
+            {"i": pub_aff},
+        ).one()
+        assert (status, dog, kid) == ("published", None, None)  # untouched
+        status, dog, kid = conn.execute(
+            text("SELECT status::text, dog_ok, kid_ok FROM affordances WHERE id = :i"),
+            {"i": rev_aff},
+        ).one()
+        assert (status, dog, kid) == ("review", True, True)  # backfill still works pre-triage
+        # evidence still flows to the queue even for the published affordance
+        new_claim_status = conn.execute(
+            text(
+                "SELECT status::text FROM claims WHERE affordance_id = :a "
+                "AND source_domain = 'oregonhikers.org'"
+            ),
+            {"a": pub_aff},
+        ).scalar_one()
+        assert new_claim_status == "review"
+
+
 def test_coverage_counts_and_next_pick(db: Engine) -> None:
     regions = load_regions()
     pdx = region_by_slug(regions, "pdx-west")
