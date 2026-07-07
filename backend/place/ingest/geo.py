@@ -33,16 +33,22 @@ def haversine_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     return 2 * _EARTH_R_M * math.asin(math.sqrt(a))
 
 
+def bbox_around(lat: float, lng: float, radius_km: float) -> BBox:
+    """Bounding box circumscribing a geodesic circle around any center.
+
+    Longitude span is cos(lat)-corrected so the box stays a snug circumscription
+    at Oregon latitudes instead of clipping the circle's east/west extremes.
+    Safe here without antimeridian handling: every region we scope is far from
+    ±180° (the region loader validates centroids into an Oregon window).
+    """
+    dlat = radius_km / 111.32
+    dlng = radius_km / (111.32 * math.cos(math.radians(lat)))
+    return BBox(south=lat - dlat, west=lng - dlng, north=lat + dlat, east=lng + dlng)
+
+
 def portland_bbox(radius_km: float = RADIUS_KM) -> BBox:
     """Bounding box circumscribing the launch circle."""
-    dlat = radius_km / 111.32
-    dlng = radius_km / (111.32 * math.cos(math.radians(PORTLAND_LAT)))
-    return BBox(
-        south=PORTLAND_LAT - dlat,
-        west=PORTLAND_LNG - dlng,
-        north=PORTLAND_LAT + dlat,
-        east=PORTLAND_LNG + dlng,
-    )
+    return bbox_around(PORTLAND_LAT, PORTLAND_LNG, radius_km)
 
 
 def in_polygon(lat: float, lng: float, radius_km: float = RADIUS_KM) -> bool:
