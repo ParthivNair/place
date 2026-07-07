@@ -15,11 +15,15 @@ each sweep
      the denormalized state and appending condition_states history;
   4. rewrites good_now with the three-factor now_score upsert (docs/01 §7 Q1)
      and drops rows that no longer qualify (hazard kill switches);
-  5. runs the standing-query (saves) alert pass (docs/01 §7 Q3).
+  5. runs the standing-query (saves) alert pass (docs/01 §7 Q3);
+  6. publishes the static pack artifacts (evaluator/publish.py — the shadow
+     read path). Nothing consumes them yet, so this phase is zero-risk by
+     construction: a publish failure logs + lands a feed_health row on the
+     publisher pseudo-feed and the sweep still succeeds.
 
-Default mode loops every ``--interval-minutes`` (30, the docs/04 sweep
-cadence); ``--once`` runs a single sweep and exits (cron mode — cron is the
-deployment story, the loop is a dev convenience).
+Default mode loops every ``--interval-minutes`` (registry.SWEEP_CADENCE, the
+docs/04 sweep cadence); ``--once`` runs a single sweep and exits (cron mode —
+cron is the deployment story, the loop is a dev convenience).
 """
 
 from __future__ import annotations
@@ -43,7 +47,7 @@ from sqlalchemy.engine import Engine
 from place import dsl, scoring
 from place.config import Settings, get_settings
 from place.db import ensure_feed_readings_partitions, get_sync_engine
-from place.evaluator import alerts, health, registry
+from place.evaluator import alerts, health, publish, registry
 from place.evaluator.adapters.base import FeedAdapter, Reading
 from place.models import condition_states, condition_windows, feed_readings, feeds
 
@@ -369,6 +373,7 @@ class SweepStats:
     windows_unknown: int = 0
     good_now_rows: int = 0
     alerts_matched: int = 0
+    packs_published: bool = False
     skipped: list[registry.SkippedFeed] = field(default_factory=list)
 
 
@@ -398,8 +403,13 @@ def sweep(
             due_rows = [
                 row
                 for row in feed_rows
-                if row["id"] not in last_ok
-                or now - last_ok[row["id"]] >= registry.cadence_for(row["provider"])
+                # The publisher pseudo-feed exists only so pack publishes can
+                # land feed_health rows (FK) — there is no adapter to fetch.
+                if row["provider"] != publish.PUBLISHER_PROVIDER
+                and (
+                    row["id"] not in last_ok
+                    or now - last_ok[row["id"]] >= registry.cadence_for(row["provider"])
+                )
             ]
             adapter_list, skipped = registry.load_adapters(due_rows, settings)
             stats.skipped = skipped
@@ -439,12 +449,40 @@ def sweep(
         stats.good_now_rows = _materialize_good_now(conn, now)
         stats.alerts_matched = len(alerts.run_alert_pass(conn, now=now))
 
+    # --- publish phase (shadow static packs) --------------------------------
+    # Zero-risk contract: the running read path does not consume packs yet, so
+    # a publish failure must never abort the sweep — it logs, lands a not-ok
+    # feed_health row on the publisher pseudo-feed (the existing
+    # three-consecutive-failures alert then covers outages), and the sweep
+    # still counts as a success.
+    t_publish = time.monotonic()
+    publish_error: str | None = None
+    try:
+        publish.publish_packs(engine, settings=settings, now=now)
+        stats.packs_published = True
+    except Exception as exc:
+        publish_error = str(exc)[:500]
+        log.exception("pack publish failed; sweep continues")
+    try:
+        with engine.begin() as conn:
+            publisher_id = publish.ensure_publisher_feed(conn, settings.region_slug)
+            health.record(
+                conn, publisher_id, ok=publish_error is None,
+                latency_ms=int((time.monotonic() - t_publish) * 1000),
+                error=publish_error, checked_at=now,
+            )
+            if publish_error is not None:
+                health.check_and_alert(conn, publisher_id)
+    except Exception:  # even the health write must not kill the sweep
+        log.exception("publisher feed_health write failed")
+
     log.info(
         "sweep done: %d fetched / %d failed / %d skipped feeds, %d readings, "
-        "%d windows (%d unknown), %d good_now rows, %d alerts",
+        "%d windows (%d unknown), %d good_now rows, %d alerts, packs %s",
         stats.feeds_fetched, stats.feeds_failed, stats.feeds_skipped,
         stats.readings_stored, stats.windows_evaluated, stats.windows_unknown,
         stats.good_now_rows, stats.alerts_matched,
+        "published" if stats.packs_published else "FAILED",
     )
     return stats
 
@@ -475,8 +513,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Place condition-evaluator sweep")
     parser.add_argument("--once", action="store_true",
                         help="run a single sweep and exit (cron mode)")
-    parser.add_argument("--interval-minutes", type=float, default=30.0,
-                        help="loop interval when not --once (default 30)")
+    parser.add_argument("--interval-minutes", type=float,
+                        default=registry.SWEEP_CADENCE.total_seconds() / 60,
+                        help="loop interval when not --once (default: the docs/04 "
+                             "sweep cadence, 30)")
     args = parser.parse_args(argv)
 
     settings = get_settings()

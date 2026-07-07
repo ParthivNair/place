@@ -18,7 +18,10 @@ from sqlalchemy.types import DateTime
 
 from place.api.reasons import iter_leaves, normalize_reading
 
-_WINDOW_STATES_SQL = text(
+# Public: the pack compiler (evaluator/publish.py) executes this same
+# statement on its sync connection so pack window state and API window state
+# can never come from different queries.
+WINDOW_STATES_SQL = text(
     """
     SELECT cw.affordance_id, cw.id AS window_id, cw.wtype::text AS wtype,
            cw.is_gate, cw.multiplier, cw.predicate,
@@ -59,7 +62,7 @@ async def window_states(
     if not affordance_ids:
         return {}
     rows = (
-        await db.execute(_WINDOW_STATES_SQL, {"ids": list(affordance_ids), "at": at})
+        await db.execute(WINDOW_STATES_SQL, {"ids": list(affordance_ids), "at": at})
     ).mappings().all()
     out: dict[uuid.UUID, list[dict[str, Any]]] = {}
     for row in rows:
