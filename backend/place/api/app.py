@@ -8,6 +8,7 @@ from collections.abc import AsyncIterator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from place.api.packs import PackStaticFiles
 from place.api.routes import all_routers
 from place.config import get_settings
 from place.db import get_async_engine
@@ -40,6 +41,16 @@ def create_app() -> FastAPI:
     )
     for router in all_routers:
         app.include_router(router)
+
+    # Static pack artifacts (the shadow read path; evaluator/publish.py is
+    # the writer). check_dir=False + mkdir: the API must boot on a fresh
+    # box before the evaluator's first publish creates any content.
+    settings.packs_dir.mkdir(parents=True, exist_ok=True)
+    app.mount(
+        "/packs",
+        PackStaticFiles(directory=str(settings.packs_dir), check_dir=False),
+        name="packs",
+    )
 
     @app.get("/healthz", include_in_schema=False)
     async def healthz() -> dict[str, str]:

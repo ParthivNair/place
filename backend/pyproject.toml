@@ -25,6 +25,7 @@ dependencies = [
     "py-vapid>=1.9",
     "pyyaml>=6.0",
     "python-multipart>=0.0.9",
+    "brotli>=1.1",
 ]
 
 [project.optional-dependencies]

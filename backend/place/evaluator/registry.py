@@ -26,6 +26,7 @@ __all__ = [
     "DEFAULT_CADENCE",
     "STALENESS_FACTOR",
     "STALENESS_OVERRIDES",
+    "SWEEP_CADENCE",
     "SkippedFeed",
     "cadence_for",
     "is_stale",
@@ -33,6 +34,13 @@ __all__ = [
     "provider_of",
     "staleness_cutoff",
 ]
+
+# The docs/04 §4 evaluation/materialization sweep interval. Single authority:
+# the run.py loop default, the astro pseudo-feed cadence, and the pack
+# publisher's conditions expires_at horizon (2x this, rule 1) all derive from
+# it, so the sweep and the artifacts it publishes can never disagree about
+# what "one sweep late" means.
+SWEEP_CADENCE = dt.timedelta(minutes=30)
 
 # docs/04 §4 cadence table. `nws` grid-point precip is served by the
 # open_meteo adapter module (the docs pair "NWS / Open-Meteo" at 1 h).
@@ -49,7 +57,7 @@ CADENCES: dict[str, dt.timedelta] = {
     "snotel": dt.timedelta(hours=6),
     "nwac": dt.timedelta(hours=6),
     "airnow": dt.timedelta(hours=1),
-    "astro": dt.timedelta(minutes=30),  # = the sweep interval
+    "astro": SWEEP_CADENCE,  # = the sweep interval
 }
 
 # Unknown providers poll (and go stale) on a conservative 1-hour cadence

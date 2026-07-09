@@ -8,4 +8,5 @@ __pycache__/
 .ruff_cache/
 backend/data/cache/*
 !backend/data/cache/.gitkeep
+backend/data/packs/
 *.egg-info/

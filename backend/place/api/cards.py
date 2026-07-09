@@ -1,9 +1,18 @@
-"""Shared claim/verification loaders for card-rendering routes (feed, places)."""
+"""Shared claim/verification loaders for card-rendering routes (feed, places)
+and the pack compiler (evaluator/publish.py).
+
+CLAIMS_SQL + project_claims are the single publication gate for claims on
+every read path: the API routes execute them async, the pack compiler
+executes the same statement sync. There is deliberately no second SQL — a
+claim that is unpublished or superseded, and the quote_internal column, are
+structurally unreachable from both the JSON API and the static artifacts.
+"""
 
 from __future__ import annotations
 
 import datetime as dt
 import uuid
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sqlalchemy import bindparam, text
@@ -14,7 +23,7 @@ from place.api.confidence import effective_confidence
 
 # Published, non-superseded claims only serve (docs/01 section 4 gate 1).
 # quote_internal is deliberately not selected — it never leaves the DB.
-_CLAIMS_SQL = text(
+CLAIMS_SQL = text(
     """
     SELECT c.id, c.affordance_id, c.cclass::text AS cclass, c.stype::text AS stype,
            c.source_domain, c.source_url, c.observed_date,
@@ -27,7 +36,7 @@ _CLAIMS_SQL = text(
     """
 ).bindparams(bindparam("ids", expanding=True))
 
-_LAST_CONFIRM_SQL = text(
+LAST_CONFIRM_SQL = text(
     """
     SELECT DISTINCT ON (c.affordance_id)
            c.affordance_id, v.verified_at, u.display_name
@@ -40,21 +49,18 @@ _LAST_CONFIRM_SQL = text(
 ).bindparams(bindparam("ids", expanding=True))
 
 
-async def load_claims(
-    db: AsyncConnection,
-    affordance_ids: list[uuid.UUID],
-    now: dt.datetime | None = None,
+def project_claims(
+    rows: Sequence[Mapping[str, Any]], now: dt.datetime
 ) -> dict[uuid.UUID, list[dict[str, Any]]]:
-    """Published claims per affordance, with decayed effective confidence."""
-    if not affordance_ids:
-        return {}
-    now = now or dt.datetime.now(dt.UTC)
-    rows = (
-        await db.execute(_CLAIMS_SQL, {"ids": list(affordance_ids)})
-    ).mappings().all()
-    # Corroboration boost (docs/01 section 5): +0.5 nats per *other*
-    # independent published source_domain on the same affordance, capped
-    # +1.5 — same read-time math the good_now materialization uses.
+    """Pure projection over CLAIMS_SQL rows, per affordance.
+
+    Corroboration boost (docs/01 section 5): +0.5 nats per *other*
+    independent published source_domain on the same affordance, capped
+    +1.5 — same read-time math the good_now materialization uses. Emits
+    both the derived `confidence` (what the API renders) and the raw
+    `log_odds` + `corroboration_nats` (what the pack ships so an offline
+    client re-derives confidence at view time from the same constants).
+    """
     domains: dict[uuid.UUID, set[str]] = {}
     for row in rows:
         if row["source_domain"] is not None:
@@ -62,7 +68,8 @@ async def load_claims(
     out: dict[uuid.UUID, list[dict[str, Any]]] = {}
     for row in rows:
         others = domains.get(row["affordance_id"], set()) - {row["source_domain"]}
-        boosted = float(row["log_odds"]) + scoring.corroboration_boost(len(others))
+        boost = scoring.corroboration_boost(len(others))
+        boosted = float(row["log_odds"]) + boost
         out.setdefault(row["affordance_id"], []).append(
             {
                 "id": row["id"],
@@ -72,6 +79,8 @@ async def load_claims(
                 "source_domain": row["source_domain"],
                 "source_url": row["source_url"],
                 "observed_date": row["observed_date"],
+                "log_odds": float(row["log_odds"]),
+                "corroboration_nats": boost,
                 "confidence": round(
                     effective_confidence(
                         boosted, row["cclass"], row["last_evidence_at"], now
@@ -84,6 +93,21 @@ async def load_claims(
     return out
 
 
+async def load_claims(
+    db: AsyncConnection,
+    affordance_ids: list[uuid.UUID],
+    now: dt.datetime | None = None,
+) -> dict[uuid.UUID, list[dict[str, Any]]]:
+    """Published claims per affordance, with decayed effective confidence."""
+    if not affordance_ids:
+        return {}
+    now = now or dt.datetime.now(dt.UTC)
+    rows = (
+        await db.execute(CLAIMS_SQL, {"ids": list(affordance_ids)})
+    ).mappings().all()
+    return project_claims(rows, now)
+
+
 async def load_last_confirm(
     db: AsyncConnection, affordance_ids: list[uuid.UUID]
 ) -> dict[uuid.UUID, dict[str, Any]]:
@@ -91,6 +115,6 @@ async def load_last_confirm(
     if not affordance_ids:
         return {}
     rows = (
-        await db.execute(_LAST_CONFIRM_SQL, {"ids": list(affordance_ids)})
+        await db.execute(LAST_CONFIRM_SQL, {"ids": list(affordance_ids)})
     ).mappings().all()
     return {row["affordance_id"]: dict(row) for row in rows}

@@ -58,6 +58,12 @@ class Settings(BaseSettings):
     session_max_age_s: int = 180 * 24 * 3600
     http_user_agent: str = "place-backend/0.1 (+https://github.com/parthivnair/place)"
     data_cache_dir: Path = _REPO_ROOT / "backend" / "data" / "cache"
+    # Static-pack publish (the shadow read path): the evaluator's publish
+    # phase writes versioned brotli artifacts under packs_dir/region_slug and
+    # the API serves them at /packs. Directory is gitignored — artifacts are
+    # build outputs, the DB stays the system of record.
+    packs_dir: Path = _REPO_ROOT / "backend" / "data" / "packs"
+    region_slug: str = "pdx"
     evaluator_lockfile: Path = Path("/tmp/place-evaluator.lock")
     log_level: str = "INFO"
     cors_origins: str = "http://localhost:3000"
