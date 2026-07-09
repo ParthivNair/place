@@ -285,6 +285,26 @@ class EventOut(BaseModel):
     affordance_id: uuid.UUID
 
 
+class ImpressionItem(BaseModel):
+    affordance_id: uuid.UUID
+    now_score: float
+    # The good_now sweep timestamp the client read off the card
+    # (FeedCard.computed_at) — the server reconstructs the conditions
+    # snapshot as of this instant, so the logged vector equals what was
+    # served. The client never supplies the snapshot itself.
+    computed_at: dt.datetime
+
+
+class ImpressionsIn(BaseModel):
+    # Cap = the feed's max page size (GET /feed limit le=50): one beacon
+    # logs at most one feed response.
+    items: list[ImpressionItem] = Field(min_length=1, max_length=50)
+
+
+class ImpressionsOut(BaseModel):
+    stored: int
+
+
 # --------------------------------------------------------------------------
 # admin review queue
 # --------------------------------------------------------------------------

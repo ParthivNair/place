@@ -7,6 +7,8 @@ import type {
   EventIn,
   EventOut,
   FeedResponse,
+  ImpressionItem,
+  ImpressionsOut,
   PlacePage,
   PlaceSearchResult,
   PushSubscriptionIn,
@@ -206,6 +208,21 @@ export async function postEvent(event: EventIn): Promise<EventOut> {
     });
   }
   return post<EventOut>("/events", event);
+}
+
+export async function postImpressions(
+  items: ImpressionItem[],
+): Promise<ImpressionsOut> {
+  if (MOCK) return mocked({ stored: items.length });
+  // A beacon, not a request the UI waits on: keepalive lets the batch
+  // survive navigation away mid-flight (fetch's sendBeacon equivalent
+  // that still carries the session cookie).
+  return request<ImpressionsOut>("/events/impressions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items }),
+    keepalive: true,
+  });
 }
 
 // ---------------------------------------------------------------------------

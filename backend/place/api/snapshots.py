@@ -108,13 +108,27 @@ def merge_inputs(window_rows: list[dict[str, Any]]) -> dict[str, Any]:
     return snapshot
 
 
+async def snapshots_for_affordances(
+    db: AsyncConnection,
+    affordance_ids: list[uuid.UUID],
+    at: dt.datetime | None = None,
+) -> dict[uuid.UUID, dict[str, Any]]:
+    """Batch form of snapshot_for_affordance: one as-of read covers a whole
+    impression beacon (every card of a feed response shares one `at`)."""
+    states = await window_states(db, affordance_ids, at=at)
+    date = (at or dt.datetime.now(dt.UTC)).date().isoformat()
+    out: dict[uuid.UUID, dict[str, Any]] = {}
+    for aff_id in affordance_ids:
+        snapshot = merge_inputs(states.get(aff_id, []))
+        snapshot["date"] = date
+        out[aff_id] = snapshot
+    return out
+
+
 async def snapshot_for_affordance(
     db: AsyncConnection,
     affordance_id: uuid.UUID,
     at: dt.datetime | None = None,
 ) -> dict[str, Any]:
     """Conditions snapshot for one affordance, optionally as of a trip time."""
-    states = await window_states(db, [affordance_id], at=at)
-    snapshot = merge_inputs(states.get(affordance_id, []))
-    snapshot["date"] = (at or dt.datetime.now(dt.UTC)).date().isoformat()
-    return snapshot
+    return (await snapshots_for_affordances(db, [affordance_id], at=at))[affordance_id]

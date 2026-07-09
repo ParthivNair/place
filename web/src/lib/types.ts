@@ -264,3 +264,19 @@ export interface EventOut {
   etype: string;
   affordance_id: string;
 }
+
+/* POST /events/impressions — the feed's impression beacon. GET /feed is a
+   pure read, so the client reports what it rendered; computed_at is the
+   card's sweep timestamp (FeedCard.computed_at) and the SERVER re-attaches
+   the conditions snapshot as of it — the log stays server-attested
+   (docs/02 §5 requirement 2), never client-supplied. Max 50 items (the
+   feed's page-size cap). */
+export interface ImpressionItem {
+  affordance_id: string;
+  now_score: number;
+  computed_at: string;
+}
+
+export interface ImpressionsOut {
+  stored: number;
+}
