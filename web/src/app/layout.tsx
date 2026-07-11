@@ -5,16 +5,20 @@ import OfflineBanner from "@/components/OfflineBanner";
 import SwRegister from "@/components/SwRegister";
 import "./globals.css";
 
+/* Next does not basePath-prefix metadata asset URLs, so the GitHub Pages
+   build (/place) has to do it by hand. */
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 export const metadata: Metadata = {
   title: "Place",
   description: "What's good right now, near you.",
-  manifest: "/manifest.webmanifest",
+  manifest: `${BASE_PATH}/manifest.webmanifest`,
   // iOS ignores manifest icons — without the apple-touch-icon link the
   // Home-Screen install (the iOS push prerequisite, UI-DRAFT-BRIEF §8)
   // falls back to a page screenshot.
   icons: {
-    icon: "/icon.svg",
-    apple: "/apple-touch-icon.png",
+    icon: `${BASE_PATH}/icon.svg`,
+    apple: `${BASE_PATH}/apple-touch-icon.png`,
   },
 };
 
