@@ -1,19 +1,24 @@
 # Place
 
-Place is an outdoor **experience discovery** product built on an experience graph: places linked
-to activities through verifiable affordances ("you can wild-swim here"), each bound to executable
-condition predicates over live public sensor feeds (USGS streamflow, NOAA tides, SNOTEL snowpack,
-NWS weather). The product truth it exists to answer: **"What's good right now, near you."**
-
-Every incumbent answers *"I know the place — tell me how to get there."* Place answers
-*"I know what I want to do — tell me where, and whether it's good today."*
+Place is the **WHEN engine** — a perishable-decision-window company. Every incumbent answers
+*where*: find the place, get to the place, book the place. Place answers **when**. Its primary
+object is the **window** — the minus tide that exposes the Haystack pools, the first larch
+weekend, the campsite cancellation at a full campground, the first smoke-free morning — each
+bound to an executable condition predicate over free public sensor feeds (USGS streamflow,
+NOAA tides, space weather, Recreation.gov availability, AirNow) with **verified local
+thresholds** that appear in no corpus. Users browse the **Almanac** — the per-metro catalog
+of watchable moments — tap **Watch**, and a watcher (a standing query, re-evaluated on every
+sweep) pushes the moment the window opens. Outdoors is window family #1 of six, and the
+everyday screen it powers is still the one no incumbent can render:
+**"What's good right now, near you."**
 
 ## Start here
 
-The strategy and development canon lives in [docs/](docs/) — read
-[docs/00-THESIS.md](docs/00-THESIS.md) first. The seven documents commit the decisions
-(ontology, schema, product loop, data strategy, architecture, roadmap, competitive position);
-new work should extend them, not re-derive them.
+The strategy and development canon lives in [docs/](docs/) — docs/00 through docs/10 — read
+[docs/00-THESIS.md](docs/00-THESIS.md) first. The canon commits the decisions (thesis, graph
+ontology, product loop, data strategy, architecture, roadmap, competitive position, the
+window-family doctrine, the Almanac, Groundwire); new work should extend them, not re-derive
+them.
 
 ## Current state of the code
 

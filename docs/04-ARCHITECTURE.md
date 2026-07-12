@@ -55,7 +55,7 @@ The product is joins: affordance × condition window × live feed reading × ver
                                                         saves · Sunday push via Web Push)
 ```
 
-**FastAPI API.** The direct descendant of `src/main.py`. Serves the four MVP surfaces from [02-PRODUCT.md](02-PRODUCT.md), owns magic-link auth, sends web push, and logs every recommendation→outcome event (`shown`, `saved`, `went`, `verified`) into `feed_events` — the calibration training data from user #1. asyncpg + SQLAlchemy Core; Pydantic models evolve from the ones already in main.py.
+**FastAPI API.** The direct descendant of `src/main.py`. Serves the five surfaces from [02-PRODUCT.md](02-PRODUCT.md), owns magic-link auth, sends web push, and logs every recommendation→outcome event (`shown`, `saved`, `went`, `verified`) into `feed_events` — the calibration training data from user #1. asyncpg + SQLAlchemy Core; Pydantic models evolve from the ones already in main.py.
 
 **Postgres.** The graph, the event log, and the materialized `good_now` index in one instance. Nightly `pg_dump` to object storage is the entire disaster-recovery plan at this scale.
 

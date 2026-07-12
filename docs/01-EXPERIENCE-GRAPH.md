@@ -1,14 +1,14 @@
 # The Experience Graph — Ontology & Schema
 
-**In one breath:** Place's graph is eleven core Postgres tables plus five support tables (PostGIS + pgvector) in which the *Affordance* — "you can wild-swim at High Rocks" — is a first-class node, not a tag; every affordance binds to machine-evaluable *ConditionWindows* (JSON predicates over named public feeds like USGS gauge 14210000), is supported by provenance-carrying *Claims*, and accumulates a *Verification* log with auto-attached condition snapshots. Confidence is log-odds math: source-type priors, +0.5 nats per independent corroborating source, Bayesian updates from verification verdicts (+1.50 confirm / −2.08 refute), and per-claim-class exponential decay whose half-lives are eventually *learned* from the verification log itself. Nothing auto-publishes from a single LLM extraction, and hazard-class affordances additionally require a recent verification plus a currently-true live trigger. This document is the engineering contract: the DDL, the predicate DSL, the update math, and the four canonical queries the product runs.
+**In one breath:** The experience graph is the substrate the WHEN engine runs on ([00-THESIS.md](00-THESIS.md) §2) — eleven core Postgres tables plus five support tables (PostGIS + pgvector) in which the *Affordance* — "you can wild-swim at High Rocks" — is a first-class node, not a tag; every affordance binds to machine-evaluable *ConditionWindows* (JSON predicates over named public feeds like USGS gauge 14210000), is supported by provenance-carrying *Claims*, and accumulates a *Verification* log with auto-attached condition snapshots. The engine core survives the reframe untouched: condition windows, the evaluator sweep, and the watcher query (§7 Q3) *are* the window engine — the reframe re-centers them, it does not change them. What is new is deliberately thin and clearly fenced: three window types and a two-table product layer (watchables and watchers, §2a), every DDL element of which is a **committed addition slated for the Phase 1 migration in [05-ROADMAP.md](05-ROADMAP.md)** — this document mirrors shipped code, and the code has not changed yet. Confidence is log-odds math: source-type priors, +0.5 nats per independent corroborating source, Bayesian updates from verification verdicts (+1.50 confirm / −2.08 refute), and per-claim-class exponential decay whose half-lives are eventually *learned* from the verification log itself. Nothing auto-publishes from a single LLM extraction, and hazard-class affordances additionally require a recent verification plus a currently-true live trigger. This document is the engineering contract: the DDL, the predicate DSL, the update math, and the four canonical queries the product runs.
 
-Vocabulary (affordance, condition window, claim, verification, binding) is defined narratively in [00-THESIS.md](00-THESIS.md); how the tables get *filled* is [03-DATA-STRATEGY.md](03-DATA-STRATEGY.md); where the evaluator cron and feed pollers live is [04-ARCHITECTURE.md](04-ARCHITECTURE.md).
+Vocabulary (affordance, condition window, claim, verification, binding — and the product layer's watchable and watcher) is defined narratively in [00-THESIS.md](00-THESIS.md) §8; the family doctrine behind the new window types is [08-WINDOW-FAMILIES.md](08-WINDOW-FAMILIES.md); the Almanac's editorial spec is [09-WATCHER-CATALOG.md](09-WATCHER-CATALOG.md); how the tables get *filled* is [03-DATA-STRATEGY.md](03-DATA-STRATEGY.md); where the evaluator cron and feed pollers live is [04-ARCHITECTURE.md](04-ARCHITECTURE.md).
 
 ---
 
 ## 1. Ontology
 
-**Entities:** `Place` (canonical, with OSM/GNIS/RIDB crosswalk IDs and geometry), `AccessPoint` (trailhead, parking lot, put-in — where you actually go, distinct from the thing you go to see), `Activity` (a closed vocabulary of ~120 verbs: wild-swim, cliff-jump, larch-view, tidepool, stargaze, paddle, snowshoe, forage…), `Affordance` (the reified place×activity node carrying difficulty, typical duration, dog/kid flags), `ConditionWindow` (typed seasonal | weather_triggered | hydrological | tidal | astronomical | snow; body is an executable predicate over a named feed), `Claim` (provenance record with source type, URL, minimal internal verbatim quote, **observed_date** — when the experience happened, not when it was posted — extractor version, confidence), `Verification` (one-tap verdict + auto conditions snapshot), and `Hazard` handling as a *claim class and activity flag* with stricter gates rather than a separate node type.
+**Entities:** `Place` (canonical, with OSM/GNIS/RIDB crosswalk IDs and geometry), `AccessPoint` (trailhead, parking lot, put-in — where you actually go, distinct from the thing you go to see), `Activity` (a closed vocabulary of ~120 verbs: wild-swim, cliff-jump, larch-view, tidepool, stargaze, paddle, snowshoe, forage…), `Affordance` (the reified place×activity node carrying difficulty, typical duration, dog/kid flags), `ConditionWindow` (typed seasonal | weather_triggered | hydrological | tidal | astronomical | snow — plus availability, air_quality, and phenological, committed Phase 1 additions per §2; body is an executable predicate over a named feed), `Claim` (provenance record with source type, URL, minimal internal verbatim quote, **observed_date** — when the experience happened, not when it was posted — extractor version, confidence), `Verification` (one-tap verdict + auto conditions snapshot), and `Hazard` handling as a *claim class and activity flag* with stricter gates rather than a separate node type.
 
 **Edges:** Place–SUPPORTS→Activity (materialized as the Affordance row); Affordance–VALID_WHEN→ConditionWindow; Claim–ASSERTS→Affordance; Verification–CONFIRMS/REFUTES→Claim; Place–ACCESSED_VIA→AccessPoint; Place–QUIET_ALTERNATIVE_TO→Place and Place–PAIRS_WITH→Place (deferred edges, schema-ready via `place_edges`); User–DID/SAVED/REJECTED→Affordance (the `saves`, `trips`, and `feed_events` tables).
 
@@ -27,6 +27,11 @@ CREATE EXTENSION IF NOT EXISTS vector;
 -- ---------- enums ----------
 CREATE TYPE window_type   AS ENUM ('seasonal','weather_triggered','hydrological',
                                    'tidal','astronomical','snow');
+-- COMMITTED ADDITION — Phase 1 migration (docs/05-ROADMAP.md); not yet in code:
+--   ALTER TYPE window_type ADD VALUE 'availability';  -- reservation family: inventory-state predicates
+--   ALTER TYPE window_type ADD VALUE 'air_quality';   -- health family: AirNow / heat-index predicates
+--   ALTER TYPE window_type ADD VALUE 'phenological';  -- bloom/flush/foliage earn their own type
+--                                                     --   rather than overloading 'seasonal'
 CREATE TYPE source_type   AS ENUM ('llm_extracted','user_reported',
                                    'founder_verified','sensor_derived');
 CREATE TYPE claim_class   AS ENUM ('geomorphic','seasonal_bio','access',
@@ -41,6 +46,7 @@ CREATE TYPE feed_event_t  AS ENUM ('impression','card_open','save','going',
 CREATE TABLE feeds (
   id              text PRIMARY KEY,      -- 'usgs_nwis:14210000:00060'
   provider        text NOT NULL,         -- usgs_nwis|noaa_coops|snotel|nwac|nws|open_meteo|airnow|astro
+                                         --   + swpc (committed, Phase 1) and recgov (committed, Phase 4)
   station_ref     text,                  -- provider-native station/point id
   parameter       text NOT NULL,         -- discharge_cfs|tide_pred_ft_mllw|swe_in|precip_in|...
   unit            text NOT NULL,
@@ -62,7 +68,8 @@ CREATE TABLE places (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name        text NOT NULL,
   kind        text NOT NULL,              -- waterfall|swim_hole|viewpoint|tidepool_area|peak|...
-  geom        geometry(Point, 4326) NOT NULL,
+                                          --   + region (committed, Phase 1 — the placeless-window anchor, §2a)
+  geom        geometry(Point, 4326) NOT NULL,  -- widens beyond Point for kind='region' rows (Phase 1, §2a)
   osm_id      bigint,
   gnis_id     text,
   ridb_id     text,
@@ -169,7 +176,8 @@ CREATE TABLE users (
   created_at     timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE saves (                      -- saves ARE standing queries (§7, query Q3)
+CREATE TABLE saves (                      -- saves ARE standing queries (§7 Q3, the watcher query);
+                                          --   generalizes to watchers in Phase 1 (§2a)
   user_id       uuid NOT NULL REFERENCES users(id),
   affordance_id uuid NOT NULL REFERENCES affordances(id),
   kind          save_kind NOT NULL,
@@ -217,6 +225,67 @@ CREATE TABLE place_edges (                -- M5, deferred but schema-ready
 ```
 
 Design decisions worth one line each: `log_odds` lives on the claim (confidence is *state*, recomputed on read with decay — §5); geometry over geography type because all math is regional and GIST + `ST_DWithin` on geography casts where needed; `feed_readings` kept indefinitely, partitioned by month (at one-metro scale the volume is trivial for Postgres, and reading history is calibration material for learning thresholds and decay parameters); `condition_states` exists for the audit trail — every recommendation served logs its conditions snapshot, the safety requirement in [02-PRODUCT.md](02-PRODUCT.md) §5 — and as the source for `/verdicts` auto-snapshots, while current state stays denormalized on `condition_windows` (`state`, `state_since`, `last_eval`) for cheap reads; `quote_internal` is schema-enforced private by never appearing in any API serializer; hazard is a claim class + activity flag, not a table — a deliberate narrowing of the ontology's `Hazard` entity ("dedicated class with stricter publication gates"): the class survives as `hazard_calibration` + `hazard_class`, the stricter gates survive intact in §4, and only the separate node type is dropped, because a hazard is a property of what's being claimed, not a different kind of node.
+
+---
+
+## 2a. Watchables and watchers — the thin product layer
+
+*(Numbered 2a so that §3–§7 — referenced by sibling docs and by code comments in `backend/place/` — keep their addresses.)*
+
+The WHEN reframe adds exactly two tables, and **no change to any existing graph table**: places, affordances, condition windows, claims, and verifications are the substrate and stay frozen. Both tables below are **committed additions slated for the Phase 1 migration in [05-ROADMAP.md](05-ROADMAP.md)** — DDL sketches, not shipped code.
+
+### (a) Watchables — the editorial layer
+
+A watchable is one curated, nameable moment in the Almanac ("Haystack minus tides"): an editorial row *over* existing condition windows and affordances. Its anatomy, naming voice, curation gates, and launch composition are [09-WATCHER-CATALOG.md](09-WATCHER-CATALOG.md)'s to specify — this doc only fixes where it sits in the schema. Sketch:
+
+```sql
+-- COMMITTED ADDITION — Phase 1 migration (docs/05-ROADMAP.md). DDL SKETCH ONLY.
+CREATE TABLE watchables (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug          text UNIQUE NOT NULL,      -- 'haystack-minus-tides'
+  name          text NOT NULL,             -- 'Haystack minus tides'
+  promise       text NOT NULL,             -- the one-line editorial promise (voice rules: 09)
+  family        text NOT NULL,             -- outdoor|sky|harvest|reservation|health|crowd (08)
+  window_ids    uuid[] NOT NULL,           -- refs into condition_windows; becomes a join
+                                           --   table if curation churn ever demands FKs
+  expected_open_freq text,                 -- 'opens ~6×/winter' — stated from backtest (09's gate)
+  backtest_opens_per_season numeric,       -- computed against 5 years of feed history
+  measured_hit_rate numeric,               -- live precision; the publication floor is 09's
+  hazard_flag    boolean NOT NULL DEFAULT false,
+  dispersal_flag boolean NOT NULL DEFAULT false,  -- forage-class: regions, never pins (02 §5)
+  status        pub_status NOT NULL DEFAULT 'draft'
+);
+```
+
+Delete every `watchables` row and the graph is untouched — that is the design test for "editorial layer," and it is why the Almanac's prose is explicitly not a moat ([00-THESIS.md](00-THESIS.md) §3).
+
+### (b) Watchers — the generalization of saves
+
+Saves already ARE standing queries — §7 Q3 has run against the `saves` table since the first line of DDL, and that is the whole reason the paid product is cheap to build. The Phase 1 generalization renames the concept and adds the three things the product contract needs: an **optional watchable ref** (watch an Almanac entry, not just a single affordance), a **delivery contract** — a watcher fires on the *open transition* only, never on readings, and every fire logs delivery telemetry, because "guaranteed delivery" is a measured claim before it is a marketing one — and a **tier flag** for the Vigilance gate (tiers and pricing live in [02-PRODUCT.md](02-PRODUCT.md), nowhere else). Sketch:
+
+```sql
+-- COMMITTED ADDITION — Phase 1 migration: saves generalize to watchers. DDL SKETCH ONLY.
+-- want_to saves are grandfathered as watchers; 'saves' survives only as DDL history.
+CREATE TABLE watchers (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id       uuid NOT NULL REFERENCES users(id),
+  affordance_id uuid REFERENCES affordances(id),  -- a direct watch (the old save), or…
+  watchable_id  uuid REFERENCES watchables(id),   -- …an Almanac watch; exactly one is set
+  tier          text NOT NULL DEFAULT 'starter',  -- starter|vigilance — the gate is 02's
+  last_fired_at timestamptz,                      -- open transitions only ("not an alert firehose")
+  last_delivered_at timestamptz,                  -- delivery telemetry (per-fire log omitted here)
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  CHECK ((affordance_id IS NULL) <> (watchable_id IS NULL))
+);
+```
+
+The fire → deliver → respond telemetry this table accumulates is the raw material of watch exhaust, moat M7 ([00-THESIS.md](00-THESIS.md) §3).
+
+### (c) The one real ontology decision: windows without a place
+
+Aurora over the metro, regional smoke, (someday) pollen — real windows with no natural place × activity anchor. It has to be settled here, because every other table hangs off the affordance.
+
+**Committed: region-scoped affordances.** A `places` row of `kind = 'region'` carries metro-scale geometry — for these rows `geom` widens beyond `Point` (concept-level here; the type change ships in the Phase 1 migration) — crossed with a closed-vocabulary activity (`aurora_view`, `smoke_clear`; the ~120-verb vocabulary stays closed and hand-curated). The result is an ordinary affordance row, so claims, verifications, condition windows, and watchers anchor exactly as they always have, and Q1–Q4 run unmodified — zero new machinery. Losing alternative (one line): affordance-less windows — they orphan the claim/verification anchor and fork every canonical query.
 
 ---
 
@@ -274,6 +343,17 @@ leaf  := {
   {"feed": "nwac:mt_hood:danger_level", "op": "<=", "value": 2}
 ]}
 ```
+
+**(e) The new families are already expressible — committed feeds, zero grammar changes.** A sky-family aurora window (SWPC adapter committed for Phase 1; the family ships Phase 3 per [05-ROADMAP.md](05-ROADMAP.md)) is two ordinary leaves:
+
+```json
+{"all": [
+  {"feed": "swpc:planetary:kp_index", "op": ">=", "value": 5},
+  {"feed": "open_meteo:45.52,-122.68:cloud_cover_pct", "op": "<", "value": 30}
+]}
+```
+
+And a reservation-family availability window is one: `{"feed": "recgov:232450:site_available", "op": "=", "value": 1}` — the Phase 4 adapter reduces a Recreation.gov availability response to a 0/1 reading (1 = a matching site is open), so an inventory-state change rides the same machinery as a tide. The grammar in this section is frozen; a family is adapters plus bindings, never DSL surgery ([08-WINDOW-FAMILIES.md](08-WINDOW-FAMILIES.md) §1).
 
 The *thresholds* in these predicates are the M1 moat: 1,200 cfs for High Rocks is earned local judgment, recorded as a `hazard_calibration` claim pointing at the window (`claims.window_id`), and tightened by every verification snapshot ("sketchy" verdict at 700 cfs narrows the bound). The forging process is [03-DATA-STRATEGY.md](03-DATA-STRATEGY.md)'s bindings program.
 
@@ -402,7 +482,7 @@ INSERT INTO claims (id, affordance_id, cclass, stype, source_domain, observed_da
   '2024-11-02', 'haiku-batch-v3', -0.12, 'published');  -- corroborated by a reddit.com claim (not shown)
 ```
 
-When the window fires, the feed card renders its provenance line exactly as this binding generates it — satisfied leaf plus live reading: *"Tamanawas Falls flowing hard: 1.6 in rain in 72 h"* (card copy always prints the leaf's `window_h`; nothing is hand-written).
+When the window opens, the feed card renders its provenance line exactly as this binding generates it — satisfied leaf plus live reading: *"Tamanawas Falls flowing hard: 1.6 in rain in 72 h"* (card copy always prints the leaf's `window_h`; nothing is hand-written).
 
 **Example 3 — Haystack Rock tide pools (tidepool, standard class, tidal window).**
 
@@ -494,7 +574,7 @@ ORDER BY gn.now_score DESC
 LIMIT 20;   -- every returned row also inserts a feed_events 'impression' with snapshot
 ```
 
-**Q3 — the standing-query alert** (saves are standing queries; run after each evaluator pass, catching windows that flipped true since the user was last alerted):
+**Q3 — the watcher query** (saves already ARE standing queries; run after each evaluator pass, it catches windows that have *opened* since the watcher last fired). This is the paid product's core query: every Vigilance push is one row of this result set, delivered ([02-PRODUCT.md](02-PRODUCT.md)). After the Phase 1 migration (§2a) the FROM clause reads `watchers`, the `want_to` filter becomes the tier gate, and `last_alerted_at` becomes `last_fired_at` — the shape below does not change:
 
 ```sql
 SELECT s.user_id, p.name, cw.wtype, cw.state_since
@@ -506,7 +586,7 @@ WHERE s.kind = 'want_to'
   AND cw.state = true
   AND cw.state_since > COALESCE(s.last_alerted_at, s.created_at)
   AND a.status = 'published';
--- → 'Dog Mountain balsamroot peaking — you saved this in January'
+-- → 'Dog Mountain balsamroot peaking — you've been watching since January'
 ```
 
 **Q4 — constraint search** ("dog-friendly wild-swim within 90 minutes, uncrowded, good now" — at launch the feed IS the query; this is the same machinery with WHERE clauses, which is the point):
