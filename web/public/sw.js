@@ -7,14 +7,19 @@
    dev server's un-hashed chunks are never served stale while online.
    Push → notification → open URL. */
 
-const CACHE = "place-shell-v2";
+const CACHE = "place-shell-v3";
+
+// Serve-root awareness: at the domain root BASE is "", on the GitHub Pages
+// project site (…/place/sw.js) it is "/place". Derived from where this
+// script is served so the same file works in both deployments.
+const BASE = self.location.pathname.replace(/\/sw\.js$/, "");
 
 const PRECACHE = [
-  "/",
-  "/manifest.webmanifest",
-  "/icon.svg",
-  "/icon-192.png",
-  "/icon-512.png",
+  `${BASE}/`,
+  `${BASE}/manifest.webmanifest`,
+  `${BASE}/icon.svg`,
+  `${BASE}/icon-192.png`,
+  `${BASE}/icon-512.png`,
 ];
 
 self.addEventListener("install", (event) => {
@@ -54,13 +59,13 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
   if (request.mode === "navigate") {
-    event.respondWith(networkFirst(request, "/"));
+    event.respondWith(networkFirst(request, `${BASE}/`));
     return;
   }
   const { pathname } = new URL(request.url);
   // Next's build assets — cached as they're fetched so the offline shell
   // has the scripts/styles its cached HTML asks for.
-  if (pathname.startsWith("/_next/static/")) {
+  if (pathname.startsWith(`${BASE}/_next/static/`)) {
     event.respondWith(networkFirst(request));
     return;
   }
@@ -86,6 +91,6 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || "/";
+  const url = (event.notification.data && event.notification.data.url) || `${BASE}/`;
   event.waitUntil(self.clients.openWindow(url));
 });
